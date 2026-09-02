@@ -2,23 +2,43 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#111111">
-  <title>Custom Chess</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#08080a">
+  <title>Custom Chess — Premium Edition</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <!-- Ambient FX Background -->
+  <div class="ambient-glow" aria-hidden="true"></div>
+  <canvas id="confettiCanvas" class="confetti-canvas"></canvas>
+
   <main class="app-shell">
     <section class="game-column">
-      <header class="topbar">
-        <div>
-          <div class="eyebrow">CUSTOM CHESS</div>
-          <h1>Play against Stockfish</h1>
-          <p id="statusText" class="status">Loading…</p>
+      
+      <!-- Sleek Floating Status & Quick Action HUD -->
+      <header class="floating-hud">
+        <div class="hud-pill status-pill">
+          <span class="status-indicator" id="turnBadge"></span>
+          <span id="statusText" class="status-label">Initializing…</span>
         </div>
-        <div class="top-actions">
-          <button id="newGameBtn">New game</button>
-          <button id="flipBtn">Flip board</button>
+
+        <div class="hud-actions">
+          <button id="hudSoundBtn" class="hud-btn" title="Toggle Sound" aria-label="Toggle Sound">
+            <svg id="soundIconOn" class="icon" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+            <svg id="soundIconOff" class="icon hidden" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+          </button>
+          <button id="hudFlipBtn" class="hud-btn" title="Flip Board" aria-label="Flip Board">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M7.11 8.53L5.7 7.11C4.8 8.27 4.24 9.61 4.07 11h2.02c.14-.87.5-1.72 1.02-2.47zM6.09 13H4.07c.17 1.39.72 2.73 1.62 3.89l1.41-1.42c-.52-.75-.88-1.6-1.01-2.47zm3.44 5.44l-1.41 1.41c1.26.98 2.78 1.63 4.41 1.84v-2.03c-1.12-.16-2.2-.67-3-1.22zM13 3.69v2.03c1.12.16 2.2.67 3 1.22l1.41-1.41c-1.26-.98-2.78-1.63-4.41-1.84zM16.89 15.47l1.41 1.41c.9-1.16 1.46-2.5 1.63-3.88h-2.02c-.14.87-.5 1.72-1.02 2.47zm1.02-6.94l1.41-1.41c-.9-1.16-1.46-2.5-1.63-3.89h-2.02c.14.87.5 1.72 1.02 2.47l1.22 2.83zM12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+          </button>
+          <button id="hudUndoBtn" class="hud-btn" title="Undo Move" aria-label="Undo Move">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+          </button>
+          <button id="hudMenuBtn" class="hud-btn" title="New Game / Menu" aria-label="Open Game Menu">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          </button>
         </div>
       </header>
 
@@ -26,90 +46,114 @@
         <div class="banner banner-upper" aria-hidden="true"><img src="./assets/upper.svg" alt=""></div>
         <div id="board" class="board" aria-label="Chess board"></div>
         <div class="banner banner-lower" aria-hidden="true"><img src="./assets/lower.svg" alt=""></div>
+        
+        <!-- Pawn Promotion Modal -->
         <div id="promotionModal" class="modal hidden" aria-hidden="true">
-          <div class="modal-card">
-            <h2>Promote pawn</h2>
+          <div class="modal-card promotion-card">
+            <h3 class="modal-title">Promote Pawn</h3>
             <div id="promotionChoices" class="promotion-choices"></div>
           </div>
         </div>
-        <div id="gameResultModal" class="game-result-modal hidden" aria-hidden="true">
-          <div class="game-result-card" role="dialog" aria-modal="true" aria-labelledby="gameResultTitle">
-            <div id="gameResultTitle" class="game-result-title">Checkmate</div>
-            <div id="gameResultMessage" class="game-result-message">You win.</div>
-            <div class="game-result-hint">Refresh the page to start a new game.</div>
+
+        <!-- Checkmate & Game Over Modal -->
+        <div id="gameResultModal" class="modal game-result-modal hidden" aria-hidden="true">
+          <div class="modal-card game-result-card" role="dialog" aria-modal="true" aria-labelledby="gameResultTitle">
+            <div class="result-badge-wrap">
+              <div id="gameResultIcon" class="result-icon">👑</div>
+            </div>
+            <h2 id="gameResultTitle" class="game-result-title">Victory</h2>
+            <p id="gameResultMessage" class="game-result-message">Checkmate — You won!</p>
+            
+            <div class="game-stats-row">
+              <div class="stat-pill">
+                <span class="stat-label">Moves</span>
+                <span id="resTotalMoves" class="stat-value">0</span>
+              </div>
+              <div class="stat-pill">
+                <span class="stat-label">Opponent</span>
+                <span id="resOpponentElo" class="stat-value">1800</span>
+              </div>
+            </div>
+
+            <div class="modal-actions-col">
+              <button id="modalPlayAgainBtn" class="primary-btn">Play Again</button>
+              <button id="modalReviewBtn" class="secondary-btn">Review Board</button>
+            </div>
           </div>
         </div>
+
+        <!-- New Game / Welcome Start Screen Modal -->
+        <div id="startModal" class="modal">
+          <div class="modal-card start-card">
+            <div class="start-header">
+              <div class="logo-badge">CHESS</div>
+              <h2>Ready to Play?</h2>
+              <p>Configure your game and take on the Stockfish Engine.</p>
+            </div>
+
+            <div class="start-section">
+              <label class="section-label">Play As</label>
+              <div class="option-pill-group" id="sideSelectGroup">
+                <button type="button" class="pill-choice active" data-color="w">
+                  <span class="pill-color-indicator white-side"></span> White
+                </button>
+                <button type="button" class="pill-choice" data-color="random">
+                  <span class="pill-color-indicator random-side"></span> Random
+                </button>
+                <button type="button" class="pill-choice" data-color="b">
+                  <span class="pill-color-indicator black-side"></span> Black
+                </button>
+              </div>
+            </div>
+
+            <div class="start-section">
+              <label class="section-label">Difficulty (ELO)</label>
+              <div class="option-pill-group" id="eloSelectGroup">
+                <button type="button" class="pill-choice" data-elo="1200" data-time="250">Casual<br><small>1200</small></button>
+                <button type="button" class="pill-choice active" data-elo="1800" data-time="500">Club<br><small>1800</small></button>
+                <button type="button" class="pill-choice" data-elo="2200" data-time="1000">Master<br><small>2200</small></button>
+                <button type="button" class="pill-choice" data-elo="2800" data-time="2000">Grandmaster<br><small>2800</small></button>
+              </div>
+            </div>
+
+            <button id="startGameBtn" class="primary-btn pulse-glow">Start Match</button>
+          </div>
+        </div>
+
       </div>
 
-      <section class="controls">
-        <div class="control-row">
-          <label>Play as
-            <select id="playerColor">
-              <option value="w">White</option>
-              <option value="b">Black</option>
-              <option value="random">Random</option>
-            </select>
-          </label>
-          <label>Engine strength
-            <select id="engineStrength">
-              <option value="1400">1400</option>
-              <option value="1800" selected>1800</option>
-              <option value="2200">2200</option>
-              <option value="2600">2600</option>
-              <option value="3000">3000</option>
-            </select>
-          </label>
-          <label>Engine time
-            <select id="engineTime">
-              <option value="250">0.25s</option>
-              <option value="500" selected>0.5s</option>
-              <option value="1000">1s</option>
-              <option value="2000">2s</option>
-              <option value="3000">3s</option>
-            </select>
-          </label>
-        </div>
-
-        <div class="button-row">
-          <button id="undoBtn">Undo</button>
-          <button id="claimDrawBtn">Claim draw</button>
-          <button id="resignBtn" class="danger">Resign</button>
-          <button id="downloadPgnBtn">Download PGN</button>
-        </div>
+      <!-- Hidden compatibility form inputs -->
+      <section class="controls" style="display: none !important;">
+        <select id="playerColor">
+          <option value="w" selected>White</option>
+          <option value="b">Black</option>
+          <option value="random">Random</option>
+        </select>
+        <select id="engineStrength">
+          <option value="1200">1200</option>
+          <option value="1800" selected>1800</option>
+          <option value="2200">2200</option>
+          <option value="2800">2800</option>
+        </select>
+        <select id="engineTime">
+          <option value="250">0.25s</option>
+          <option value="500" selected>0.5s</option>
+          <option value="1000">1s</option>
+          <option value="2000">2s</option>
+        </select>
+        <button id="newGameBtn">New</button>
+        <button id="flipBtn">Flip</button>
+        <button id="undoBtn">Undo</button>
+        <button id="claimDrawBtn">Draw</button>
+        <button id="resignBtn">Resign</button>
+        <button id="downloadPgnBtn">PGN</button>
+        <button id="copyFenBtn">Copy FEN</button>
+        <button id="loadFenBtn">Load FEN</button>
+        <textarea id="fenBox"></textarea>
+        <ol id="moveList"></ol>
+        <span id="moveCounter">0</span>
       </section>
     </section>
-
-    <aside class="side-column">
-      <section class="panel">
-        <div class="panel-heading"><span>Moves</span><span id="moveCounter">0</span></div>
-        <ol id="moveList" class="move-list"></ol>
-      </section>
-
-      <section class="panel">
-        <div class="panel-heading">Position</div>
-        <label class="stacked-label">FEN
-          <textarea id="fenBox" rows="4" spellcheck="false"></textarea>
-        </label>
-        <div class="button-row compact">
-          <button id="copyFenBtn">Copy FEN</button>
-          <button id="loadFenBtn">Load FEN</button>
-        </div>
-      </section>
-
-      <section class="panel">
-        <div class="panel-heading">Custom state hooks</div>
-        <p class="small">Your SVG state files are the visual source of truth. The renderer never substitutes a font/glyph piece.</p>
-        <div class="state-grid">
-          <code>standard</code>
-          <code>moving</code>
-          <code>attacking</code>
-          <code>celebrate</code>
-          <code>defeated</code>
-          <code>secret</code>
-        </div>
-        <p class="small">For scripted effects, the browser exposes <code>window.ChessApp</code> with <code>setPieceState(square, state)</code>.</p>
-      </section>
-    </aside>
   </main>
 
   <script type="module" src="app.js"></script>
