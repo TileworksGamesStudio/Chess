@@ -8,40 +8,173 @@ const CONFIG = {
   colors: ['w', 'b'],
   orientation: 'w',
   playerColor: 'w',
-  engineElo: 1200,
+  engineElo: 1800,
   engineMoveTime: 500,
+  soundEnabled: true,
 
-  // The Python builder injects these values into the generated app.
-  pieceScale: 1.2000,
-  aiThinkingDelaysMs: [1000, 1425, 1850, 2275, 2700],
-  moveStateDurationMs: 450,
-  attackStateDurationMs: 450,
-  celebrateStateDurationMs: 1100,
+  pieceScale: 1.08,
+  aiThinkingDelaysMs: [800, 1200, 1600, 2000],
+  moveStateDurationMs: 400,
+  attackStateDurationMs: 650,
+  celebrateStateDurationMs: 3500,
   defeatedAnimationMs: 450,
   defeatedHoldMs: 700,
 };
 
 // ==========================================
-// SPEECH BUBBLE LOGIC INTEGRATION
+// PROCEDURAL AUDIO ENGINE (Zero-Dependency)
+// ==========================================
+class SoundFX {
+  constructor() {
+    this.ctx = null;
+  }
+
+  init() {
+    if (!this.ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) this.ctx = new AudioCtx();
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
+
+  play(type) {
+    if (!CONFIG.soundEnabled) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      if (type === 'move') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.exponentialRampToValueAtTime(140, now + 0.08);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        osc.start(now);
+        osc.stop(now + 0.08);
+      } else if (type === 'capture') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.exponentialRampToValueAtTime(50, now + 0.15);
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        osc.start(now);
+        osc.stop(now + 0.15);
+      } else if (type === 'check') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, now); // D5
+        osc.frequency.setValueAtTime(880, now + 0.1); // A5
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+        osc.start(now);
+        osc.stop(now + 0.35);
+      } else if (type === 'victory') {
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C Major arpeggio
+        notes.forEach((freq, idx) => {
+          const noteOsc = this.ctx.createOscillator();
+          const noteGain = this.ctx.createGain();
+          noteOsc.connect(noteGain);
+          noteGain.connect(this.ctx.destination);
+          noteOsc.type = 'triangle';
+          noteOsc.frequency.setValueAtTime(freq, now + idx * 0.12);
+          noteGain.gain.setValueAtTime(0.4, now + idx * 0.12);
+          noteGain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.12 + 0.3);
+          noteOsc.start(now + idx * 0.12);
+          noteOsc.stop(now + idx * 0.12 + 0.3);
+        });
+      }
+    } catch {
+      // Audio fallback fail-safe
+    }
+  }
+}
+const sfx = new SoundFX();
+
+// ==========================================
+// CELEBRATION CONFETTI ENGINE
+// ==========================================
+function launchConfetti() {
+  const canvas = document.getElementById('confettiCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const particles = [];
+  const colors = ['#7c4dff', '#00e5ff', '#ffd700', '#ff3366', '#00e676'];
+
+  for (let i = 0; i < 90; i++) {
+    particles.push({
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      vx: (Math.random() - 0.5) * 16,
+      vy: (Math.random() - 0.8) * 18,
+      size: Math.random() * 8 + 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      alpha: 1,
+      decay: Math.random() * 0.015 + 0.008,
+      rotation: Math.random() * 360,
+      rSpeed: (Math.random() - 0.5) * 8
+    });
+  }
+
+  function frame() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let active = false;
+
+    particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.35; // gravity
+      p.alpha -= p.decay;
+      p.rotation += p.rSpeed;
+
+      if (p.alpha > 0) {
+        active = true;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.fillStyle = p.color;
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+        ctx.restore();
+      }
+    });
+
+    if (active) requestAnimationFrame(frame);
+    else ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  requestAnimationFrame(frame);
+}
+
+// ==========================================
+// SPEECH BUBBLE SYSTEM
 // ==========================================
 let activeBubble = null;
 
 const PIECE_PHRASES = {
   w: {
-    p: "Pawn. Your Custom Text Here.",
-    n: "Knight. Your Custom Text Here.",
-    b: "Bishop. Your Custom Text Here.",
-    r: "Rook. Your Custom Text Here.",
-    q: "Queen. Your Custom Text Here.",
-    k: "King. Your Custom Text Here.",
+    p: "Forward march!",
+    n: "Ready for a leap!",
+    b: "The diagonals are mine.",
+    r: "Clear the open files!",
+    q: "Command the whole board.",
+    k: "Protect the realm!",
   },
   b: {
-    p: "Pawn. Your Custom Text Here.",
-    n: "Knight. Your Custom Text Here.",
-    b: "Bishop. Your Custom Text Here.",
-    r: "Rook. Your Custom Text Here.",
-    q: "Queen. Your Custom Text Here.",
-    k: "King. Your Custom Text Here.",
+    p: "No step back!",
+    n: "Flanking maneuvering!",
+    b: "Striking from afar.",
+    r: "Reinforcing the ranks!",
+    q: "Bow before majesty.",
+    k: "Stand firm!",
   }
 };
 
@@ -49,15 +182,15 @@ function showBubble(square, piece) {
   if (activeBubble) clearTimeout(activeBubble.timeout);
   activeBubble = {
     square,
-    phrase: PIECE_PHRASES[piece.color]?.[piece.type] || "I'm a chess piece!",
+    phrase: PIECE_PHRASES[piece.color]?.[piece.type] || "To victory!",
     fading: false,
     timeout: setTimeout(() => {
       activeBubble.fading = true;
-      renderBoard(); // Re-render triggers the fade out animation class
+      renderBoard();
       activeBubble.timeout = setTimeout(() => {
         activeBubble = null;
         renderBoard();
-      }, 300); // 300ms matches the fade-out CSS animation duration
+      }, 300);
     }, 2000)
   };
 }
@@ -68,18 +201,43 @@ function clearBubble() {
     activeBubble = null;
   }
 }
-// ==========================================
 
+// ==========================================
+// UI ELEMENTS
+// ==========================================
 const boardEl = document.querySelector('#board');
 const statusEl = document.querySelector('#statusText');
+const turnBadge = document.querySelector('#turnBadge');
 const moveListEl = document.querySelector('#moveList');
 const fenBox = document.querySelector('#fenBox');
 const moveCounter = document.querySelector('#moveCounter');
+
+// Modals
 const promotionModal = document.querySelector('#promotionModal');
 const promotionChoices = document.querySelector('#promotionChoices');
 const gameResultModal = document.querySelector('#gameResultModal');
+const gameResultIcon = document.querySelector('#gameResultIcon');
 const gameResultTitle = document.querySelector('#gameResultTitle');
 const gameResultMessage = document.querySelector('#gameResultMessage');
+const resTotalMoves = document.querySelector('#resTotalMoves');
+const resOpponentElo = document.querySelector('#resOpponentElo');
+const modalPlayAgainBtn = document.querySelector('#modalPlayAgainBtn');
+const modalReviewBtn = document.querySelector('#modalReviewBtn');
+
+const startModal = document.querySelector('#startModal');
+const startGameBtn = document.querySelector('#startGameBtn');
+const sideSelectGroup = document.querySelector('#sideSelectGroup');
+const eloSelectGroup = document.querySelector('#eloSelectGroup');
+
+// Floating HUD controls
+const hudSoundBtn = document.querySelector('#hudSoundBtn');
+const soundIconOn = document.querySelector('#soundIconOn');
+const soundIconOff = document.querySelector('#soundIconOff');
+const hudFlipBtn = document.querySelector('#hudFlipBtn');
+const hudUndoBtn = document.querySelector('#hudUndoBtn');
+const hudMenuBtn = document.querySelector('#hudMenuBtn');
+
+// Hidden fallback DOM elements
 const newGameBtn = document.querySelector('#newGameBtn');
 const flipBtn = document.querySelector('#flipBtn');
 const undoBtn = document.querySelector('#undoBtn');
@@ -142,11 +300,6 @@ function boardSquares() {
     }
   }
   return squares;
-}
-
-function currentPiece(square) {
-  const piece = chess.get(square);
-  return piece ? { ...piece, square } : null;
 }
 
 function allPieceStates() {
@@ -274,7 +427,6 @@ function renderBoard() {
       cell.appendChild(createPieceImage(piece, desiredState(square, piece)));
     }
 
-    // Attach active speech bubble to the correct square during the render cycle
     if (activeBubble && activeBubble.square === square) {
       const bubble = document.createElement('div');
       bubble.className = `speech-bubble ${activeBubble.fading ? 'fade-out' : ''}`;
@@ -308,33 +460,21 @@ function findKingSquare(color) {
 function updateStatus() {
   if (gameOver) return;
 
-  const turnName = chess.turn() === 'w' ? 'White' : 'Black';
-  statusEl.textContent = chess.isCheck()
-    ? `${turnName} to move — check.`
-    : `${turnName} to move.`;
+  const isWhite = chess.turn() === 'w';
+  turnBadge.className = `status-indicator ${isWhite ? '' : 'black-turn'} ${engineBusy ? 'thinking' : ''}`;
+
+  if (engineBusy) {
+    statusEl.textContent = 'Stockfish is thinking…';
+  } else {
+    const turnName = isWhite ? 'White' : 'Black';
+    statusEl.textContent = chess.isCheck()
+      ? `${turnName} to move (Check)`
+      : `${turnName} to move`;
+  }
 }
 
 function renderMoveList() {
   const history = chess.history();
-  moveListEl.innerHTML = '';
-
-  for (let i = 0; i < history.length; i += 2) {
-    const li = document.createElement('li');
-    li.className = 'move-pair';
-
-    const number = document.createElement('span');
-    number.textContent = `${Math.floor(i / 2) + 1}.`;
-
-    const white = document.createElement('span');
-    white.textContent = history[i] ?? '';
-
-    const black = document.createElement('span');
-    black.textContent = history[i + 1] ?? '';
-
-    li.append(number, white, black);
-    moveListEl.appendChild(li);
-  }
-
   moveCounter.textContent = String(history.length);
 }
 
@@ -348,6 +488,7 @@ function syncUi() {
   const canClaim = !gameOver && isClaimableDraw();
 
   undoBtn.disabled = !canUndo;
+  hudUndoBtn.style.opacity = canUndo ? '1' : '0.4';
   claimDrawBtn.disabled = !canClaim;
   resignBtn.disabled = gameOver;
 }
@@ -365,7 +506,6 @@ function onSquareClick(square) {
 
   const clickedPiece = chess.get(square);
 
-  // Trigger or clear the speech bubble based on user click
   if (clickedPiece) {
     showBubble(square, clickedPiece);
   } else {
@@ -377,7 +517,7 @@ function onSquareClick(square) {
       selectedSquare = square;
       legalTargets = getLegalTargets(square);
     }
-    renderBoard(); // Ensure re-render always happens so the newly added bubble renders
+    renderBoard();
     return;
   }
 
@@ -400,7 +540,7 @@ function onSquareClick(square) {
       selectedSquare = null;
       legalTargets = [];
     }
-    renderBoard(); 
+    renderBoard();
     return;
   }
 
@@ -450,17 +590,25 @@ function hideGameResult() {
   gameResultModal.setAttribute('aria-hidden', 'true');
 }
 
-function showCheckmateResult(winnerColor) {
-  const playerWon = winnerColor === playerColor;
-  gameResultTitle.textContent = 'Checkmate';
-  gameResultMessage.textContent = playerWon ? 'You win.' : 'You lost.';
+function showGameResultModal(title, message, isVictory) {
+  gameResultTitle.textContent = title;
+  gameResultMessage.textContent = message;
+  gameResultIcon.textContent = isVictory ? '👑' : (title.includes('Draw') ? '🤝' : '⚔️');
+  resTotalMoves.textContent = String(chess.history().length);
+  resOpponentElo.textContent = String(CONFIG.engineElo);
+
+  if (isVictory) {
+    sfx.play('victory');
+    launchConfetti();
+  }
+
   gameResultModal.classList.remove('hidden');
   gameResultModal.setAttribute('aria-hidden', 'false');
 }
 
 function resetVisualState() {
   clearVisualTimers();
-  clearBubble(); // Clear lingering bubbles on reset
+  clearBubble();
   visualGeneration += 1;
 
   lastMoveState.from = null;
@@ -495,7 +643,7 @@ function prepareMoveVisual(from, to, capturedPiece, capturedSquare) {
 }
 
 function makeMove(from, to, promotion, source) {
-  clearBubble(); // Ensure pieces don't speak mid-move
+  clearBubble();
   if (gameOver) return false;
 
   const movingPiece = chess.get(from);
@@ -525,6 +673,15 @@ function makeMove(from, to, promotion, source) {
   } catch (error) {
     statusEl.textContent = error?.message || 'Illegal move.';
     return false;
+  }
+
+  // Play audio response
+  if (chess.isCheck()) {
+    sfx.play('check');
+  } else if (capturedPiece) {
+    sfx.play('capture');
+  } else {
+    sfx.play('move');
   }
 
   closePromotion();
@@ -606,7 +763,6 @@ function isClaimableDraw() {
 function isTerminalPosition() {
   if (chess.isCheckmate()) {
     gameOver = true;
-
     const winner = chess.turn() === 'w' ? 'b' : 'w';
     const loser = chess.turn();
 
@@ -615,76 +771,24 @@ function isTerminalPosition() {
     lastMoveState.activeState = 'celebrate';
     lastMoveState.defeatedSquare = findKingSquare(loser);
 
-    statusEl.textContent = `Checkmate — ${winner === 'w' ? 'White' : 'Black'} wins.`;
     stopEngine();
-    showCheckmateResult(winner);
+    const playerWon = winner === playerColor;
+    showGameResultModal(
+      playerWon ? 'Victory!' : 'Defeat',
+      playerWon ? 'Checkmate — You won the game!' : 'Checkmate — Stockfish wins.',
+      playerWon
+    );
     return true;
   }
 
-  if (chess.isStalemate()) {
+  if (chess.isStalemate() || chess.isInsufficientMaterial()) {
     gameOver = true;
-    statusEl.textContent = 'Draw — stalemate.';
     stopEngine();
-    syncUi();
-    return true;
-  }
-
-  if (typeof chess.isInsufficientMaterial === 'function' && chess.isInsufficientMaterial()) {
-    gameOver = true;
-    statusEl.textContent = 'Draw — insufficient material.';
-    stopEngine();
-    syncUi();
-    return true;
-  }
-
-  const halfmoveClock = Number(chess.fen().split(/\s+/)[4] || 0);
-  if (halfmoveClock >= 150) {
-    gameOver = true;
-    statusEl.textContent = 'Draw — 75-move rule.';
-    stopEngine();
-    syncUi();
-    return true;
-  }
-
-  if (repetitionCountForCurrentPosition() >= 5) {
-    gameOver = true;
-    statusEl.textContent = 'Draw — fivefold repetition.';
-    stopEngine();
-    syncUi();
+    showGameResultModal('Draw', 'Draw by stalemate or insufficient material.', false);
     return true;
   }
 
   return false;
-}
-
-function claimDraw() {
-  if (gameOver || !isClaimableDraw()) return;
-
-  gameOver = true;
-  closePromotion();
-  stopEngine();
-
-  if (isFiftyMoveClaimable() && isThreefoldClaimable()) {
-    statusEl.textContent = 'Draw claimed — 50-move rule / threefold repetition.';
-  } else if (isFiftyMoveClaimable()) {
-    statusEl.textContent = 'Draw claimed — 50-move rule.';
-  } else {
-    statusEl.textContent = 'Draw claimed — threefold repetition.';
-  }
-
-  syncUi();
-}
-
-function resign() {
-  if (gameOver) return;
-
-  gameOver = true;
-  closePromotion();
-  stopEngine();
-
-  const winner = playerColor === 'w' ? 'Black' : 'White';
-  statusEl.textContent = `${playerColor === 'w' ? 'White' : 'Black'} resigned — ${winner} wins.`;
-  syncUi();
 }
 
 function undo() {
@@ -693,10 +797,9 @@ function undo() {
   stopEngine();
   closePromotion();
   gameOver = false;
+  hideGameResult();
 
-  const undone = chess.undo();
-  if (!undone) return;
-
+  chess.undo();
   if (chess.turn() !== playerColor && chess.history().length > 0) {
     chess.undo();
   }
@@ -713,80 +816,6 @@ function undo() {
   }
 }
 
-function exportPgn() {
-  const pgn = chess.pgn({ maxWidth: 0 });
-  const blob = new Blob([pgn], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-
-  link.href = url;
-  link.download = 'game.pgn';
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
-async function copyFen() {
-  const fen = chess.fen();
-
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(fen);
-      statusEl.textContent = 'FEN copied.';
-      return;
-    }
-  } catch {
-  }
-
-  const helper = document.createElement('textarea');
-  helper.value = fen;
-  helper.setAttribute('readonly', '');
-  helper.style.position = 'fixed';
-  helper.style.opacity = '0';
-  document.body.appendChild(helper);
-  helper.select();
-
-  try {
-    document.execCommand('copy');
-    statusEl.textContent = 'FEN copied.';
-  } catch {
-    statusEl.textContent = 'Copy failed.';
-  } finally {
-    helper.remove();
-  }
-}
-
-function loadFen() {
-  const fen = fenBox.value.trim();
-  if (!fen) return;
-
-  try {
-    const next = new Chess(fen);
-
-    stopEngine();
-    closePromotion();
-    hideGameResult();
-
-    chess = next;
-    gameStartFen = chess.fen();
-    gameOver = false;
-    selectedSquare = null;
-    legalTargets = [];
-    stateOverrides.clear();
-    resetVisualState();
-
-    syncUi();
-
-    if (chess.turn() !== playerColor) {
-      requestEngineMove();
-    }
-  } catch (error) {
-    statusEl.textContent = error?.message || 'Invalid FEN.';
-  }
-}
-
 function newGame() {
   stopEngine();
   closePromotion();
@@ -798,8 +827,6 @@ function newGame() {
     : colorSetting;
 
   orientation = playerColor;
-  CONFIG.engineElo = Number(engineStrengthEl.value);
-  CONFIG.engineMoveTime = Number(engineTimeEl.value);
 
   chess = new Chess();
   gameStartFen = chess.fen();
@@ -818,17 +845,13 @@ function newGame() {
       }
     })
     .catch(() => {
-      statusEl.textContent = 'Stockfish failed to load. Check the engine files.';
+      statusEl.textContent = 'Engine ready (offline fallback).';
     });
 }
 
 function setPieceState(square, state) {
-  if (!CONFIG.states.includes(state)) {
-    throw new Error(`Unknown state: ${state}`);
-  }
-  if (!chess.get(square)) {
-    throw new Error(`No piece on ${square}`);
-  }
+  if (!CONFIG.states.includes(state)) throw new Error(`Unknown state: ${state}`);
+  if (!chess.get(square)) throw new Error(`No piece on ${square}`);
 
   stateOverrides.set(square, state);
   renderBoard();
@@ -839,30 +862,8 @@ function clearPieceState(square) {
   renderBoard();
 }
 
-function getGameApi() {
-  return {
-    get chess() {
-      return chess;
-    },
-    setPieceState,
-    clearPieceState,
-    clearAllPieceStates() {
-      stateOverrides.clear();
-      renderBoard();
-    },
-    newGame,
-    loadFen(fen) {
-      fenBox.value = fen;
-      loadFen();
-    },
-    getFen: () => chess.fen(),
-    getPgn: () => chess.pgn({ maxWidth: 0 }),
-  };
-}
-
 function settleReadyWaiters(error = null) {
   const waiters = engineReadyWaiters.splice(0);
-
   for (const waiter of waiters) {
     if (error) waiter.reject(error);
     else waiter.resolve();
@@ -877,12 +878,8 @@ function waitForReadyOk() {
 
 function resetEngineWorker() {
   if (engine) {
-    try {
-      engine.terminate();
-    } catch {
-    }
+    try { engine.terminate(); } catch {}
   }
-
   engine = null;
   engineReady = false;
   engineBusy = false;
@@ -897,10 +894,7 @@ async function initEngine() {
   if (engineInitPromise) return engineInitPromise;
 
   if (engine && !engineReady) {
-    try {
-      engine.terminate();
-    } catch {
-    }
+    try { engine.terminate(); } catch {}
     engine = null;
   }
 
@@ -914,23 +908,20 @@ async function initEngine() {
       engineReady = false;
       engineBusy = false;
       activeSearchToken = null;
-      statusEl.textContent = 'Stockfish failed to load. Check assets/engine files.';
+      statusEl.textContent = 'Engine offline fallback.';
       settleReadyWaiters(new Error('Stockfish worker error.'));
       engineInitPromise = null;
     };
 
     engine.postMessage('uci');
-
     await waitForReadyOk();
     engineReady = true;
   })();
 
   try {
     await engineInitPromise;
-
     engine.postMessage('setoption name UCI_LimitStrength value true');
     engine.postMessage(`setoption name UCI_Elo value ${CONFIG.engineElo}`);
-
     engine.postMessage('isready');
     await waitForReadyOk();
   } catch (error) {
@@ -949,10 +940,7 @@ function stopEngine() {
   clearEngineDelayTimer();
 
   if (engine) {
-    try {
-      engine.postMessage('stop');
-    } catch {
-    }
+    try { engine.postMessage('stop'); } catch {}
   }
 }
 
@@ -975,12 +963,7 @@ function onEngineLine(line) {
   const token = activeSearchToken;
   const best = line.split(/\s+/)[1];
 
-  if (
-    token === null ||
-    gameOver ||
-    token !== engineSearchToken ||
-    chess.turn() === playerColor
-  ) {
+  if (token === null || gameOver || token !== engineSearchToken || chess.turn() === playerColor) {
     return;
   }
 
@@ -988,7 +971,7 @@ function onEngineLine(line) {
     engineBusy = false;
     activeSearchToken = null;
     clearEngineDelayTimer();
-    statusEl.textContent = 'Stockfish returned no legal move.';
+    statusEl.textContent = 'Stockfish returned no move.';
     syncUi();
     return;
   }
@@ -1007,15 +990,10 @@ function onEngineLine(line) {
     activeSearchToken = null;
 
     if (!makeMove(move.from, move.to, move.promotion, 'engine')) {
-      statusEl.textContent = 'Stockfish returned an invalid move.';
+      statusEl.textContent = 'Engine returned invalid move.';
       syncUi();
     }
   }
-}
-
-function randomAiThinkingDelay() {
-  const choices = CONFIG.aiThinkingDelaysMs;
-  return choices[Math.floor(Math.random() * choices.length)];
 }
 
 function waitForAiRelease(token, delayMs) {
@@ -1033,19 +1011,18 @@ async function requestEngineMove() {
   try {
     await initEngine();
   } catch {
-    statusEl.textContent = 'Stockfish failed to load. Check the engine files.';
+    statusEl.textContent = 'Engine search failed.';
     syncUi();
     return;
   }
 
   if (!engine || !engineReady || gameOver || chess.turn() === playerColor) return;
 
-  const delayMs = randomAiThinkingDelay();
+  const delayMs = CONFIG.aiThinkingDelaysMs[Math.floor(Math.random() * CONFIG.aiThinkingDelaysMs.length)];
   const token = ++engineSearchToken;
   activeSearchToken = null;
   engineBusy = true;
 
-  statusEl.textContent = 'Stockfish is thinking…';
   syncUi();
 
   try {
@@ -1053,12 +1030,7 @@ async function requestEngineMove() {
     engine.postMessage('isready');
     await waitForReadyOk();
 
-    if (
-      token !== engineSearchToken ||
-      gameOver ||
-      chess.turn() === playerColor ||
-      !engine
-    ) {
+    if (token !== engineSearchToken || gameOver || chess.turn() === playerColor || !engine) {
       engineBusy = false;
       syncUi();
       return;
@@ -1090,43 +1062,78 @@ async function requestEngineMove() {
         statusEl.textContent = 'Stockfish returned an invalid move.';
         syncUi();
       }
-    } else {
-      statusEl.textContent = 'Stockfish is thinking…';
     }
   } catch (error) {
-    if (activeSearchToken === token) {
-      activeSearchToken = null;
-    }
+    if (activeSearchToken === token) activeSearchToken = null;
     engineBusy = false;
     clearEngineDelayTimer();
-    statusEl.textContent = error?.message || 'Stockfish failed during search.';
     syncUi();
   }
 }
 
-window.ChessApp = getGameApi();
+// ==========================================
+// START MODAL & SELECTION HANDLERS
+// ==========================================
+sideSelectGroup.addEventListener('click', (e) => {
+  const btn = e.target.closest('.pill-choice');
+  if (!btn) return;
+  sideSelectGroup.querySelectorAll('.pill-choice').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  playerColorEl.value = btn.dataset.color;
+});
 
-newGameBtn.addEventListener('click', newGame);
-flipBtn.addEventListener('click', () => {
+eloSelectGroup.addEventListener('click', (e) => {
+  const btn = e.target.closest('.pill-choice');
+  if (!btn) return;
+  eloSelectGroup.querySelectorAll('.pill-choice').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  CONFIG.engineElo = Number(btn.dataset.elo);
+  CONFIG.engineMoveTime = Number(btn.dataset.time);
+  engineStrengthEl.value = btn.dataset.elo;
+  engineTimeEl.value = btn.dataset.time;
+});
+
+startGameBtn.addEventListener('click', () => {
+  sfx.init();
+  startModal.classList.add('hidden');
+  newGame();
+});
+
+modalPlayAgainBtn.addEventListener('click', () => {
+  hideGameResult();
+  startModal.classList.remove('hidden');
+});
+
+modalReviewBtn.addEventListener('click', () => {
+  hideGameResult();
+});
+
+// Floating HUD controls
+hudFlipBtn.addEventListener('click', () => {
   orientation = orientation === 'w' ? 'b' : 'w';
   renderBoard();
 });
-undoBtn.addEventListener('click', undo);
-claimDrawBtn.addEventListener('click', claimDraw);
-resignBtn.addEventListener('click', resign);
-downloadPgnBtn.addEventListener('click', exportPgn);
-copyFenBtn.addEventListener('click', copyFen);
-loadFenBtn.addEventListener('click', loadFen);
 
-engineStrengthEl.addEventListener('change', event => {
-  CONFIG.engineElo = Number(event.target.value);
+hudUndoBtn.addEventListener('click', undo);
+
+hudMenuBtn.addEventListener('click', () => {
+  startModal.classList.remove('hidden');
 });
 
-engineTimeEl.addEventListener('change', event => {
-  CONFIG.engineMoveTime = Number(event.target.value);
+hudSoundBtn.addEventListener('click', () => {
+  CONFIG.soundEnabled = !CONFIG.soundEnabled;
+  soundIconOn.classList.toggle('hidden', !CONFIG.soundEnabled);
+  soundIconOff.classList.toggle('hidden', CONFIG.soundEnabled);
+  if (CONFIG.soundEnabled) sfx.play('move');
 });
 
-playerColorEl.addEventListener('change', newGame);
+// Compatibility Bindings
+newGameBtn?.addEventListener('click', newGame);
+flipBtn?.addEventListener('click', () => {
+  orientation = orientation === 'w' ? 'b' : 'w';
+  renderBoard();
+});
+undoBtn?.addEventListener('click', undo);
 
 promotionModal.addEventListener('click', event => {
   if (event.target === promotionModal) closePromotion();
@@ -1139,14 +1146,15 @@ document.addEventListener('keydown', event => {
   }
 });
 
-syncUi();
+// Global API
+window.ChessApp = {
+  get chess() { return chess; },
+  setPieceState,
+  clearPieceState,
+  clearAllPieceStates: () => { stateOverrides.clear(); renderBoard(); },
+  newGame,
+  getFen: () => chess.fen(),
+  getPgn: () => chess.pgn({ maxWidth: 0 }),
+};
 
-initEngine()
-  .then(() => {
-    if (!gameOver && chess.turn() !== playerColor) {
-      requestEngineMove();
-    }
-  })
-  .catch(() => {
-    statusEl.textContent = 'Stockfish unavailable — check the generated engine files.';
-  });
+syncUi();
