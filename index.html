@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#111111">
+  <title>Custom Chess</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="game-column">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">CUSTOM CHESS</div>
+          <h1>Play against Stockfish</h1>
+          <p id="statusText" class="status">Loading…</p>
+        </div>
+        <div class="top-actions">
+          <button id="newGameBtn">New game</button>
+          <button id="flipBtn">Flip board</button>
+        </div>
+      </header>
+
+      <div class="board-wrap">
+        <div class="banner banner-upper" aria-hidden="true"><img src="./assets/upper.svg" alt=""></div>
+        <div id="board" class="board" aria-label="Chess board"></div>
+        <div class="banner banner-lower" aria-hidden="true"><img src="./assets/lower.svg" alt=""></div>
+        <div id="promotionModal" class="modal hidden" aria-hidden="true">
+          <div class="modal-card">
+            <h2>Promote pawn</h2>
+            <div id="promotionChoices" class="promotion-choices"></div>
+          </div>
+        </div>
+        <div id="gameResultModal" class="game-result-modal hidden" aria-hidden="true">
+          <div class="game-result-card" role="dialog" aria-modal="true" aria-labelledby="gameResultTitle">
+            <div id="gameResultTitle" class="game-result-title">Checkmate</div>
+            <div id="gameResultMessage" class="game-result-message">You win.</div>
+            <div class="game-result-hint">Refresh the page to start a new game.</div>
+          </div>
+        </div>
+      </div>
+
+      <section class="controls">
+        <div class="control-row">
+          <label>Play as
+            <select id="playerColor">
+              <option value="w">White</option>
+              <option value="b">Black</option>
+              <option value="random">Random</option>
+            </select>
+          </label>
+          <label>Engine strength
+            <select id="engineStrength">
+              <option value="1400">1400</option>
+              <option value="1800" selected>1800</option>
+              <option value="2200">2200</option>
+              <option value="2600">2600</option>
+              <option value="3000">3000</option>
+            </select>
+          </label>
+          <label>Engine time
+            <select id="engineTime">
+              <option value="250">0.25s</option>
+              <option value="500" selected>0.5s</option>
+              <option value="1000">1s</option>
+              <option value="2000">2s</option>
+              <option value="3000">3s</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="button-row">
+          <button id="undoBtn">Undo</button>
+          <button id="claimDrawBtn">Claim draw</button>
+          <button id="resignBtn" class="danger">Resign</button>
+          <button id="downloadPgnBtn">Download PGN</button>
+        </div>
+      </section>
+    </section>
+
+    <aside class="side-column">
+      <section class="panel">
+        <div class="panel-heading"><span>Moves</span><span id="moveCounter">0</span></div>
+        <ol id="moveList" class="move-list"></ol>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading">Position</div>
+        <label class="stacked-label">FEN
+          <textarea id="fenBox" rows="4" spellcheck="false"></textarea>
+        </label>
+        <div class="button-row compact">
+          <button id="copyFenBtn">Copy FEN</button>
+          <button id="loadFenBtn">Load FEN</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading">Custom state hooks</div>
+        <p class="small">Your SVG state files are the visual source of truth. The renderer never substitutes a font/glyph piece.</p>
+        <div class="state-grid">
+          <code>standard</code>
+          <code>moving</code>
+          <code>attacking</code>
+          <code>celebrate</code>
+          <code>defeated</code>
+          <code>secret</code>
+        </div>
+        <p class="small">For scripted effects, the browser exposes <code>window.ChessApp</code> with <code>setPieceState(square, state)</code>.</p>
+      </section>
+    </aside>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
