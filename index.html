@@ -2,159 +2,251 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#08080a">
-  <title>Custom Chess — Premium Edition</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#090a10">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Custom Chess — Master Edition</title>
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- Ambient FX Background -->
+  <!-- Ambient Atmosphere -->
   <div class="ambient-glow" aria-hidden="true"></div>
   <canvas id="confettiCanvas" class="confetti-canvas"></canvas>
 
-  <main class="app-shell">
-    <section class="game-column">
+  <main class="app-layout">
+    
+    <!-- LEFT / CENTER: Chess Arena -->
+    <section class="chess-stage">
       
-      <!-- Sleek Floating Status & Quick Action HUD -->
-      <header class="floating-hud">
-        <div class="hud-pill status-pill">
-          <span class="status-indicator" id="turnBadge"></span>
-          <span id="statusText" class="status-label">Initializing…</span>
+      <!-- Top Opponent Header (Mobile & Compact Viewport) -->
+      <header class="player-bar opponent-bar" id="opponentBar">
+        <div class="player-profile">
+          <div class="avatar-box opponent-avatar">
+            <svg class="avatar-icon" viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/></svg>
+            <span class="status-dot" id="opponentStatusDot"></span>
+          </div>
+          <div class="player-details">
+            <div class="player-name-row">
+              <span class="player-name">Stockfish Engine</span>
+              <span class="elo-tag" id="opponentEloTag">1800</span>
+            </div>
+            <div class="captured-tray" id="opponentCapturedTray"></div>
+          </div>
         </div>
-
-        <div class="hud-actions">
-          <button id="hudSoundBtn" class="hud-btn" title="Toggle Sound" aria-label="Toggle Sound">
-            <svg id="soundIconOn" class="icon" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-            <svg id="soundIconOff" class="icon hidden" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
-          </button>
-          <button id="hudFlipBtn" class="hud-btn" title="Flip Board" aria-label="Flip Board">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M7.11 8.53L5.7 7.11C4.8 8.27 4.24 9.61 4.07 11h2.02c.14-.87.5-1.72 1.02-2.47zM6.09 13H4.07c.17 1.39.72 2.73 1.62 3.89l1.41-1.42c-.52-.75-.88-1.6-1.01-2.47zm3.44 5.44l-1.41 1.41c1.26.98 2.78 1.63 4.41 1.84v-2.03c-1.12-.16-2.2-.67-3-1.22zM13 3.69v2.03c1.12.16 2.2.67 3 1.22l1.41-1.41c-1.26-.98-2.78-1.63-4.41-1.84zM16.89 15.47l1.41 1.41c.9-1.16 1.46-2.5 1.63-3.88h-2.02c-.14.87-.5 1.72-1.02 2.47zm1.02-6.94l1.41-1.41c-.9-1.16-1.46-2.5-1.63-3.89h-2.02c.14.87.5 1.72 1.02 2.47l1.22 2.83zM12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
-          </button>
-          <button id="hudUndoBtn" class="hud-btn" title="Undo Move" aria-label="Undo Move">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
-          </button>
-          <button id="hudMenuBtn" class="hud-btn" title="New Game / Menu" aria-label="Open Game Menu">
-            <svg class="icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-          </button>
-        </div>
+        <div class="advantage-badge" id="opponentAdvantage"></div>
       </header>
 
-      <div class="board-wrap">
-        <div class="banner banner-upper" aria-hidden="true"><img src="./assets/upper.svg" alt=""></div>
-        <div id="board" class="board" aria-label="Chess board"></div>
-        <div class="banner banner-lower" aria-hidden="true"><img src="./assets/lower.svg" alt=""></div>
-        
-        <!-- Pawn Promotion Modal -->
-        <div id="promotionModal" class="modal hidden" aria-hidden="true">
-          <div class="modal-card promotion-card">
-            <h3 class="modal-title">Promote Pawn</h3>
-            <div id="promotionChoices" class="promotion-choices"></div>
-          </div>
+      <!-- Central Board Container with Integrated Banners -->
+      <div class="board-viewport">
+        <div class="banner banner-upper" aria-hidden="true">
+          <img src="./assets/upper.svg" alt="">
         </div>
 
-        <!-- Checkmate & Game Over Modal -->
-        <div id="gameResultModal" class="modal game-result-modal hidden" aria-hidden="true">
-          <div class="modal-card game-result-card" role="dialog" aria-modal="true" aria-labelledby="gameResultTitle">
-            <div class="result-badge-wrap">
-              <div id="gameResultIcon" class="result-icon">👑</div>
-            </div>
-            <h2 id="gameResultTitle" class="game-result-title">Victory</h2>
-            <p id="gameResultMessage" class="game-result-message">Checkmate — You won!</p>
-            
-            <div class="game-stats-row">
-              <div class="stat-pill">
-                <span class="stat-label">Moves</span>
-                <span id="resTotalMoves" class="stat-value">0</span>
-              </div>
-              <div class="stat-pill">
-                <span class="stat-label">Opponent</span>
-                <span id="resOpponentElo" class="stat-value">1800</span>
-              </div>
-            </div>
-
-            <div class="modal-actions-col">
-              <button id="modalPlayAgainBtn" class="primary-btn">Play Again</button>
-              <button id="modalReviewBtn" class="secondary-btn">Review Board</button>
-            </div>
-          </div>
+        <div class="board-wrapper">
+          <div id="board" class="board" aria-label="Chess board"></div>
+          
+          <!-- Board Edge Coordinate Overlays -->
+          <div class="coords coords-files" id="coordsFiles" aria-hidden="true"></div>
+          <div class="coords coords-ranks" id="coordsRanks" aria-hidden="true"></div>
         </div>
 
-        <!-- New Game / Welcome Start Screen Modal -->
-        <div id="startModal" class="modal">
-          <div class="modal-card start-card">
-            <div class="start-header">
-              <div class="logo-badge">CHESS</div>
-              <h2>Ready to Play?</h2>
-              <p>Configure your game and take on the Stockfish Engine.</p>
-            </div>
-
-            <div class="start-section">
-              <label class="section-label">Play As</label>
-              <div class="option-pill-group" id="sideSelectGroup">
-                <button type="button" class="pill-choice active" data-color="w">
-                  <span class="pill-color-indicator white-side"></span> White
-                </button>
-                <button type="button" class="pill-choice" data-color="random">
-                  <span class="pill-color-indicator random-side"></span> Random
-                </button>
-                <button type="button" class="pill-choice" data-color="b">
-                  <span class="pill-color-indicator black-side"></span> Black
-                </button>
-              </div>
-            </div>
-
-            <div class="start-section">
-              <label class="section-label">Difficulty (ELO)</label>
-              <div class="option-pill-group" id="eloSelectGroup">
-                <button type="button" class="pill-choice" data-elo="1200" data-time="250">Casual<br><small>1200</small></button>
-                <button type="button" class="pill-choice active" data-elo="1800" data-time="500">Club<br><small>1800</small></button>
-                <button type="button" class="pill-choice" data-elo="2200" data-time="1000">Master<br><small>2200</small></button>
-                <button type="button" class="pill-choice" data-elo="2800" data-time="2000">Grandmaster<br><small>2800</small></button>
-              </div>
-            </div>
-
-            <button id="startGameBtn" class="primary-btn pulse-glow">Start Match</button>
-          </div>
+        <div class="banner banner-lower" aria-hidden="true">
+          <img src="./assets/lower.svg" alt="">
         </div>
-
       </div>
 
-      <!-- Hidden compatibility form inputs -->
-      <section class="controls" style="display: none !important;">
-        <select id="playerColor">
-          <option value="w" selected>White</option>
-          <option value="b">Black</option>
-          <option value="random">Random</option>
-        </select>
-        <select id="engineStrength">
-          <option value="1200">1200</option>
-          <option value="1800" selected>1800</option>
-          <option value="2200">2200</option>
-          <option value="2800">2800</option>
-        </select>
-        <select id="engineTime">
-          <option value="250">0.25s</option>
-          <option value="500" selected>0.5s</option>
-          <option value="1000">1s</option>
-          <option value="2000">2s</option>
-        </select>
-        <button id="newGameBtn">New</button>
-        <button id="flipBtn">Flip</button>
-        <button id="undoBtn">Undo</button>
-        <button id="claimDrawBtn">Draw</button>
-        <button id="resignBtn">Resign</button>
-        <button id="downloadPgnBtn">PGN</button>
-        <button id="copyFenBtn">Copy FEN</button>
-        <button id="loadFenBtn">Load FEN</button>
-        <textarea id="fenBox"></textarea>
-        <ol id="moveList"></ol>
-        <span id="moveCounter">0</span>
-      </section>
+      <!-- Bottom User Header -->
+      <footer class="player-bar player-user-bar" id="playerBar">
+        <div class="player-profile">
+          <div class="avatar-box user-avatar">
+            <svg class="avatar-icon" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            <span class="status-dot active" id="playerStatusDot"></span>
+          </div>
+          <div class="player-details">
+            <div class="player-name-row">
+              <span class="player-name">You</span>
+              <span class="side-badge" id="playerSideBadge">White</span>
+            </div>
+            <div class="captured-tray" id="playerCapturedTray"></div>
+          </div>
+        </div>
+        <div class="advantage-badge" id="playerAdvantage"></div>
+      </footer>
+
     </section>
+
+    <!-- RIGHT: Desktop Grandmaster Sidebar & Controls -->
+    <aside class="sidebar-panel">
+      
+      <!-- Match Status Header -->
+      <div class="match-card">
+        <div class="match-status-header">
+          <div class="live-turn-indicator">
+            <span class="pulse-ring" id="turnIndicatorRing"></span>
+            <span id="turnBadge" class="status-dot"></span>
+          </div>
+          <div class="status-meta">
+            <h2 id="statusText" class="match-status-title">Match in Progress</h2>
+            <span id="matchSubText" class="match-status-sub">White to move</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation & Move History Panel -->
+      <div class="history-card">
+        <div class="history-header">
+          <span class="history-title">Move History</span>
+          <span class="move-pill"><span id="moveCounter">0</span> plies</span>
+        </div>
+        <div class="move-history-scroll" id="moveHistoryContainer">
+          <table class="move-history-table">
+            <tbody id="moveListBody">
+              <!-- Dynamically populated rows: 1. e4 e5 -->
+            </tbody>
+          </table>
+          <div class="empty-history-placeholder" id="emptyHistoryMsg">Moves will appear here as the game progresses.</div>
+        </div>
+      </div>
+
+      <!-- Action Toolbar -->
+      <div class="action-deck">
+        <button id="hudSoundBtn" class="action-btn" title="Toggle Sound" aria-label="Toggle Sound">
+          <svg id="soundIconOn" class="icon" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+          <svg id="soundIconOff" class="icon hidden" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+          <span>Audio</span>
+        </button>
+
+        <button id="hudFlipBtn" class="action-btn" title="Flip Board" aria-label="Flip Board">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M7.11 8.53L5.7 7.11C4.8 8.27 4.24 9.61 4.07 11h2.02c.14-.87.5-1.72 1.02-2.47zM6.09 13H4.07c.17 1.39.72 2.73 1.62 3.89l1.41-1.42c-.52-.75-.88-1.6-1.01-2.47zm3.44 5.44l-1.41 1.41c1.26.98 2.78 1.63 4.41 1.84v-2.03c-1.12-.16-2.2-.67-3-1.22zM13 3.69v2.03c1.12.16 2.2.67 3 1.22l1.41-1.41c-1.26-.98-2.78-1.63-4.41-1.84zM16.89 15.47l1.41 1.41c.9-1.16 1.46-2.5 1.63-3.88h-2.02c-.14.87-.5 1.72-1.02 2.47zm1.02-6.94l1.41-1.41c-.9-1.16-1.46-2.5-1.63-3.89h-2.02c.14.87.5 1.72 1.02 2.47l1.22 2.83zM12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+          <span>Flip</span>
+        </button>
+
+        <button id="hudUndoBtn" class="action-btn" title="Takeback move" aria-label="Undo Move">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+          <span>Undo</span>
+        </button>
+
+        <button id="hudMenuBtn" class="action-btn primary-action" title="New Game / Match Settings" aria-label="Open Match Menu">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          <span>Match</span>
+        </button>
+      </div>
+
+    </aside>
   </main>
+
+  <!-- ================= MODALS & POPUPS ================= -->
+
+  <!-- Pawn Promotion Selector -->
+  <div id="promotionModal" class="modal-overlay hidden" aria-hidden="true" role="dialog">
+    <div class="modal-card promotion-card">
+      <h3 class="modal-headline">Promote Pawn</h3>
+      <p class="modal-subtext">Choose your reinforcement piece</p>
+      <div id="promotionChoices" class="promotion-grid"></div>
+    </div>
+  </div>
+
+  <!-- Game Concluded Modal -->
+  <div id="gameResultModal" class="modal-overlay hidden" aria-hidden="true" role="dialog" aria-labelledby="gameResultTitle">
+    <div class="modal-card result-card">
+      <div class="result-badge-wrap">
+        <div id="gameResultIcon" class="result-icon">👑</div>
+      </div>
+      <h2 id="gameResultTitle" class="result-title">Victory</h2>
+      <p id="gameResultMessage" class="result-subtitle">Checkmate — Stockfish has fallen.</p>
+      
+      <div class="result-stats-row">
+        <div class="stat-cell">
+          <span class="stat-caption">Total Moves</span>
+          <span id="resTotalMoves" class="stat-number">0</span>
+        </div>
+        <div class="stat-cell">
+          <span class="stat-caption">Opponent Elo</span>
+          <span id="resOpponentElo" class="stat-number">1800</span>
+        </div>
+      </div>
+
+      <div class="modal-btn-stack">
+        <button id="modalPlayAgainBtn" class="btn btn-primary">Start New Match</button>
+        <button id="modalReviewBtn" class="btn btn-secondary">Review Position</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Start / Configuration Dialog -->
+  <div id="startModal" class="modal-overlay" role="dialog" aria-labelledby="startModalTitle">
+    <div class="modal-card config-card">
+      <div class="config-header">
+        <div class="brand-pill">PREMIUM CHESS</div>
+        <h2 id="startModalTitle" class="config-title">Prepare for Battle</h2>
+        <p class="config-lead">Fine-tune your setup and challenge the onboard Stockfish intelligence.</p>
+      </div>
+
+      <div class="config-section">
+        <label class="config-label">Play As</label>
+        <div class="option-grid" id="sideSelectGroup">
+          <button type="button" class="chip-choice active" data-color="w">
+            <span class="chip-circle side-white"></span>
+            <span>White</span>
+          </button>
+          <button type="button" class="chip-choice" data-color="random">
+            <span class="chip-circle side-random"></span>
+            <span>Random</span>
+          </button>
+          <button type="button" class="chip-choice" data-color="b">
+            <span class="chip-circle side-black"></span>
+            <span>Black</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="config-section">
+        <label class="config-label">Engine Difficulty</label>
+        <div class="option-grid elo-grid" id="eloSelectGroup">
+          <button type="button" class="chip-choice" data-elo="1200" data-time="250">
+            <span class="chip-title">Novice</span>
+            <span class="chip-sub">1200 Elo</span>
+          </button>
+          <button type="button" class="chip-choice active" data-elo="1800" data-time="500">
+            <span class="chip-title">Club</span>
+            <span class="chip-sub">1800 Elo</span>
+          </button>
+          <button type="button" class="chip-choice" data-elo="2200" data-time="1000">
+            <span class="chip-title">Master</span>
+            <span class="chip-sub">2200 Elo</span>
+          </button>
+          <button type="button" class="chip-choice" data-elo="2800" data-time="2000">
+            <span class="chip-title">Grandmaster</span>
+            <span class="chip-sub">2800 Elo</span>
+          </button>
+        </div>
+      </div>
+
+      <button id="startGameBtn" class="btn btn-primary btn-glow">Commence Game</button>
+    </div>
+  </div>
+
+  <!-- Hidden Fallback Inputs for Full Compatibility -->
+  <div class="sr-only" style="display:none !important;" aria-hidden="true">
+    <select id="playerColor"><option value="w" selected>White</option><option value="b">Black</option><option value="random">Random</option></select>
+    <select id="engineStrength"><option value="1200">1200</option><option value="1800" selected>1800</option><option value="2200">2200</option><option value="2800">2800</option></select>
+    <select id="engineTime"><option value="250">0.25s</option><option value="500" selected>0.5s</option><option value="1000">1s</option><option value="2000">2s</option></select>
+    <button id="newGameBtn">New</button>
+    <button id="flipBtn">Flip</button>
+    <button id="undoBtn">Undo</button>
+    <button id="claimDrawBtn">Draw</button>
+    <button id="resignBtn">Resign</button>
+    <button id="downloadPgnBtn">PGN</button>
+    <button id="copyFenBtn">Copy FEN</button>
+    <button id="loadFenBtn">Load FEN</button>
+    <textarea id="fenBox"></textarea>
+    <ol id="moveList"></ol>
+  </div>
 
   <script type="module" src="app.js"></script>
 </body>
