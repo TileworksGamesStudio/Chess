@@ -2,84 +2,114 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Wizard's Chess — The Grand Duel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Wizard's Chess: The Grand Duel</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Three.js, OrbitControls, and GSAP via high-speed CDNs -->
+  <!-- Three.js, OrbitControls, and GSAP libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 </head>
 <body>
-  <!-- 3D Canvas Container -->
+  <!-- 3D WebGL Canvas -->
   <div id="webgl-container"></div>
 
-  <!-- Vignette & Spell Flash Overlay -->
+  <!-- Atmospheric Screen Overlays -->
   <div id="vignette-overlay"></div>
   <div id="flash-overlay"></div>
 
   <!-- Top Banner / Game State HUD -->
   <header id="ui-header">
-    <div class="heraldry-crest left-crest"></div>
     <div class="header-center">
       <h1 class="game-title">WIZARD’S CHESS</h1>
+      <div class="subtitle-flourish">THE GRAND DUEL</div>
       <div class="turn-indicator-badge">
         <span class="pulse-gem" id="turn-gem"></span>
-        <span id="turn-text">LUMOS ORDER’S MOVE</span>
+        <span id="turn-text">LUMOS ORDER’S TURN</span>
       </div>
     </div>
-    <div class="heraldry-crest right-crest"></div>
   </header>
 
-  <!-- Left Sidebar: Captured Piece Crypts & Engine Eval -->
+  <!-- Left Panel: Crypt of Casualties & Material Advantage -->
   <aside id="ui-left-panel" class="parchment-glass">
-    <div class="panel-header">GRAVEYARD OF FALLEN PIECES</div>
+    <div class="panel-header">FALLEN CASUALTIES</div>
+    <div class="material-advantage-bar" id="material-advantage-text">EQUAL POWER</div>
+
     <div class="graveyard-section">
-      <div class="graveyard-title">Lumos Casualties</div>
+      <div class="graveyard-title">Lumos Order (White)</div>
       <div id="white-graveyard" class="graveyard-slots"></div>
     </div>
+
     <div class="graveyard-divider"></div>
+
     <div class="graveyard-section">
-      <div class="graveyard-title">Nox Casualties</div>
+      <div class="graveyard-title">Nox Legion (Black)</div>
       <div id="black-graveyard" class="graveyard-slots"></div>
     </div>
   </aside>
 
-  <!-- Right Sidebar: Duel Chronicle & Move Log -->
+  <!-- Right Panel: Duel Chronicle & SAN Move Log -->
   <aside id="ui-right-panel" class="parchment-glass">
-    <div class="panel-header">THE DUEL CHRONICLE</div>
+    <div class="panel-header">DUEL CHRONICLE</div>
     <div id="duel-log" class="chronicle-feed">
-      <div class="log-entry system-message">The ancient chess chamber stirs. Cast your move, wizard.</div>
+      <div class="log-entry system-message">The duel chamber stirs. Cast your incantation.</div>
     </div>
   </aside>
 
-  <!-- Bottom Control Bar -->
+  <!-- Bottom Interactive Footer Controls -->
   <footer id="ui-footer">
     <div class="control-group">
       <label for="ai-difficulty">Opponent:</label>
       <select id="ai-difficulty" class="fantasy-select">
-        <option value="1">Apprentice AI</option>
-        <option value="2" selected>Auror Knight AI</option>
-        <option value="3">Archmage AI</option>
-        <option value="pvp">Pass & Play (2P)</option>
+        <option value="1">Apprentice AI (Shallow)</option>
+        <option value="2" selected>Auror Knight AI (Standard)</option>
+        <option value="3">Archmage AI (Pruned PST)</option>
+        <option value="pvp">Pass & Play (2 Player)</option>
       </select>
     </div>
 
     <div class="button-row">
-      <button id="btn-cam-tactical" class="fantasy-btn" title="Bird's Eye View">Tactical Cam</button>
-      <button id="btn-cam-duel" class="fantasy-btn" title="Dynamic Duel Angle">Duel Cam</button>
-      <button id="btn-cam-reset" class="fantasy-btn" title="Standard Free View">Free Cam</button>
-      <button id="btn-undo" class="fantasy-btn" title="Turn back time">Undo Spell</button>
-      <button id="btn-sound" class="fantasy-btn audio-btn" title="Toggle Magical Acoustics">Sound: ON</button>
-      <button id="btn-restart" class="fantasy-btn danger-btn" title="Reset the board">Reset Duel</button>
+      <button id="btn-cam-tactical" class="fantasy-btn" title="Tactical Top-Down View">Tactical</button>
+      <button id="btn-cam-duel" class="fantasy-btn" title="Cinematic Low Angle">Duel Angle</button>
+      <button id="btn-cam-reset" class="fantasy-btn" title="Standard Perspective">Free Cam</button>
+      <button id="btn-cam-flip" class="fantasy-btn" title="Flip Board Perspective">Flip Side</button>
+      <button id="btn-undo" class="fantasy-btn" title="Turn Back Time">Undo</button>
+      <button id="btn-sound" class="fantasy-btn audio-btn" title="Toggle Magical Audio">Sound: ON</button>
+      <button id="btn-restart" class="fantasy-btn danger-btn" title="Reset the board">Reset</button>
     </div>
   </footer>
 
-  <!-- Modal / End Game Overlay -->
+  <!-- Pawn Transfiguration / Promotion Modal Dialog -->
+  <div id="promotion-modal" class="modal-hidden">
+    <div class="modal-card promotion-card">
+      <h2>ARCANE TRANSFIGURATION</h2>
+      <p>Choose the form your ascended pawn shall assume:</p>
+      <div class="promotion-options">
+        <button class="promo-choice-btn" data-piece="q">
+          <span class="promo-glyph">♛</span>
+          <span class="promo-label">Queen</span>
+        </button>
+        <button class="promo-choice-btn" data-piece="n">
+          <span class="promo-glyph">♞</span>
+          <span class="promo-label">Knight</span>
+        </button>
+        <button class="promo-choice-btn" data-piece="r">
+          <span class="promo-glyph">♜</span>
+          <span class="promo-label">Rook</span>
+        </button>
+        <button class="promo-choice-btn" data-piece="b">
+          <span class="promo-glyph">♝</span>
+          <span class="promo-label">Bishop</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- End of Game Resolution Modal -->
   <div id="game-modal" class="modal-hidden">
     <div class="modal-card">
       <h2 id="modal-title">CHECKMATE!</h2>
