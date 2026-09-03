@@ -2,139 +2,208 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
-  />
-  <title>Wizard's Chess: The Grand Duel (Mobile Edition)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#121417" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Master Chess | Play vs AI & Friends</title>
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
   <link rel="stylesheet" href="style.css" />
+  <!-- chess.js for robust FIDE rules engine -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 </head>
-<body>
-  <div id="game-app">
-    <!-- Screen FX Overlays -->
-    <div id="vignette-overlay"></div>
-    <div id="flash-overlay"></div>
-
-    <!-- Top Header HUD -->
-    <header id="ui-header">
-      <div class="header-titles">
-        <h1 class="game-title">WIZARD’S CHESS</h1>
-        <div class="header-subtitle">THE GRAND DUEL</div>
+<body data-theme="emerald">
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-icon">♟</span>
+        <h1>Crown<span>Chess</span></h1>
       </div>
-      
-      <div class="hud-status-bar">
-        <div class="turn-badge">
-          <span class="pulse-gem" id="turn-gem"></span>
-          <span id="turn-text">LUMOS ORDER</span>
-        </div>
-        <div class="advantage-badge" id="material-advantage-text">EQUAL POWER</div>
+      <div class="header-actions">
+        <button id="btn-stats" class="icon-btn" aria-label="Statistics" title="Stats">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+        </button>
+        <button id="btn-settings" class="icon-btn" aria-label="Settings" title="Settings">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        </button>
+        <button id="btn-sound" class="icon-btn" aria-label="Toggle Sound" title="Sound">
+          <span class="sound-on">🔊</span>
+          <span class="sound-off hidden">🔇</span>
+        </button>
       </div>
     </header>
 
-    <!-- Fallen Casualties Bars -->
-    <section class="graveyards-bar">
-      <div class="graveyard-row">
-        <span class="graveyard-tag">NOX:</span>
-        <div id="nox-graveyard" class="graveyard-slots"></div>
-      </div>
-      <div class="graveyard-row">
-        <span class="graveyard-tag">LUMOS:</span>
-        <div id="lumos-graveyard" class="graveyard-slots"></div>
-      </div>
-    </section>
-
-    <!-- 2D Chess Arena -->
-    <main id="board-container">
-      <div id="board-frame">
-        <div id="chessboard" class="chessboard"></div>
-        <!-- 2D Particle & Combat Spell Canvas Overlay -->
-        <canvas id="fx-canvas"></canvas>
-      </div>
-    </main>
-
-    <!-- Quick Action Bar -->
-    <nav id="ui-action-bar">
-      <button id="btn-undo" class="action-btn" title="Undo Move">
-        <span class="btn-icon">↺</span>
-        <span class="btn-label">Undo</span>
-      </button>
-      <button id="btn-flip" class="action-btn" title="Flip Board">
-        <span class="btn-icon">⇅</span>
-        <span class="btn-label">Flip</span>
-      </button>
-      <button id="btn-log-toggle" class="action-btn" title="Duel Chronicle">
-        <span class="btn-icon">📜</span>
-        <span class="btn-label">Log</span>
-      </button>
-      <button id="btn-sound" class="action-btn" title="Toggle Audio">
-        <span class="btn-icon" id="sound-icon">🔊</span>
-        <span class="btn-label">Sound</span>
-      </button>
-      <button id="btn-restart" class="action-btn danger-btn" title="New Match">
-        <span class="btn-icon">⚔</span>
-        <span class="btn-label">Reset</span>
-      </button>
-    </nav>
-
-    <!-- Bottom Opponent Selector -->
-    <footer id="ui-footer-bar">
-      <label for="ai-difficulty">Opponent:</label>
-      <select id="ai-difficulty" class="fantasy-select">
-        <option value="1">Apprentice AI (Fast)</option>
-        <option value="2" selected>Auror Knight AI (Standard)</option>
-        <option value="3">Archmage AI (Deep)</option>
-        <option value="pvp">Pass &amp; Play (2P)</option>
-      </select>
-    </footer>
-
-    <!-- Chronicle Drawer / Bottom Sheet -->
-    <div id="chronicle-drawer" class="drawer-hidden">
-      <div class="drawer-header">
-        <span>DUEL CHRONICLE</span>
-        <button id="btn-close-drawer" class="drawer-close-btn">&times;</button>
-      </div>
-      <div id="duel-log" class="chronicle-feed">
-        <div class="log-entry system-message">The duel chamber stirs. Cast your incantation.</div>
-      </div>
-    </div>
-    <div id="drawer-backdrop" class="drawer-backdrop-hidden"></div>
-
-    <!-- Promotion Transfiguration Modal -->
-    <div id="promotion-modal" class="modal-hidden">
-      <div class="modal-card">
-        <h2>TRANSFIGURATION</h2>
-        <p>Ascend your pawn into a higher order:</p>
-        <div class="promotion-options">
-          <button class="promo-choice-btn" data-piece="q">
-            <span class="promo-glyph">♛</span>
-            <span class="promo-label">Queen</span>
-          </button>
-          <button class="promo-choice-btn" data-piece="n">
-            <span class="promo-glyph">♞</span>
-            <span class="promo-label">Knight</span>
-          </button>
-          <button class="promo-choice-btn" data-piece="r">
-            <span class="promo-glyph">♜</span>
-            <span class="promo-label">Rook</span>
-          </button>
-          <button class="promo-choice-btn" data-piece="b">
-            <span class="promo-glyph">♝</span>
-            <span class="promo-label">Bishop</span>
-          </button>
+    <!-- Top Player Card (Black / AI) -->
+    <div class="player-bar" id="player-top">
+      <div class="player-info">
+        <div class="avatar" id="avatar-top">🤖</div>
+        <div class="details">
+          <span class="player-name" id="name-top">Stockfish AI</span>
+          <span class="badge" id="badge-top">Level 2</span>
         </div>
       </div>
+      <div class="captures-wrapper">
+        <div class="captured-pieces" id="captures-top"></div>
+        <span class="material-diff" id="diff-top"></span>
+      </div>
+      <div class="turn-indicator" id="turn-top"></div>
     </div>
 
-    <!-- End Game Modal -->
-    <div id="game-modal" class="modal-hidden">
-      <div class="modal-card">
-        <h2 id="modal-title">CHECKMATE!</h2>
-        <p id="modal-desc">The Lumos Order has shattered the Nox Legion.</p>
-        <button id="modal-btn-restart" class="action-btn gold-glow">Re-engage Duel</button>
+    <!-- Main Game Board Container -->
+    <div class="board-wrapper">
+      <!-- Evaluation Bar -->
+      <div class="eval-meter" title="Engine Evaluation">
+        <div class="eval-fill" id="eval-fill" style="height: 50%;"></div>
       </div>
+
+      <!-- 8x8 Board -->
+      <div class="chess-board" id="chessboard" touch-action="none"></div>
+    </div>
+
+    <!-- Bottom Player Card (White / User) -->
+    <div class="player-bar" id="player-bottom">
+      <div class="player-info">
+        <div class="avatar" id="avatar-bottom">👤</div>
+        <div class="details">
+          <span class="player-name" id="name-bottom">You</span>
+          <span class="badge" id="badge-bottom">White</span>
+        </div>
+      </div>
+      <div class="captures-wrapper">
+        <div class="captured-pieces" id="captures-bottom"></div>
+        <span class="material-diff" id="diff-bottom"></span>
+      </div>
+      <div class="turn-indicator active" id="turn-bottom"></div>
+    </div>
+
+    <!-- Move Log Notation Banner -->
+    <div class="move-history-strip" id="history-strip">
+      <span class="history-empty">Game started. Make your move!</span>
+    </div>
+
+    <!-- Bottom Mobile Toolbar -->
+    <nav class="action-toolbar">
+      <button id="btn-new-game" class="tool-btn primary">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+        <span>New</span>
+      </button>
+      <button id="btn-undo" class="tool-btn" title="Undo Move">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+        <span>Undo</span>
+      </button>
+      <button id="btn-hint" class="tool-btn" title="Get Move Hint">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>
+        <span>Hint</span>
+      </button>
+      <button id="btn-flip" class="tool-btn" title="Flip Board Orientation">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7.11 8.53L5.7 7.11C4.8 8.27 4.24 9.61 4.07 11h2.02c.14-.87.49-1.72 1.02-2.47zM6.09 13H4.07c.17 1.39.72 2.73 1.62 3.89l1.41-1.42c-.52-.75-.87-1.6-1.01-2.47zm3.44 5.44l-1.41 1.41c1.26.97 2.76 1.6 4.39 1.81v-2.02c-1.11-.16-2.16-.58-2.98-1.2zM13 3.07v2.02c1.11.16 2.16.58 2.98 1.2l1.41-1.41C16.13 3.9 14.63 3.28 13 3.07zM16.89 15.47l1.41 1.41c.9-1.16 1.46-2.5 1.63-3.88h-2.02c-.14.87-.49 1.72-1.02 2.47zm1.02-6.94c.53.75.88 1.6 1.02 2.47h2.02c-.17-1.39-.72-2.73-1.62-3.89l-1.42 1.42zM13 18.91v2.02c1.63-.21 3.13-.84 4.39-1.81l-1.41-1.41c-.82.62-1.87 1.04-2.98 1.2z"/></svg>
+        <span>Flip</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Promotion Picker Modal -->
+  <div class="modal-overlay" id="modal-promotion">
+    <div class="modal-card promotion-card">
+      <h3>Pawn Promotion</h3>
+      <p>Select piece upgrade:</p>
+      <div class="promotion-choices" id="promotion-choices"></div>
+    </div>
+  </div>
+
+  <!-- Game Over Modal -->
+  <div class="modal-overlay" id="modal-gameover">
+    <div class="modal-card gameover-card">
+      <div class="result-icon" id="gameover-icon">🏆</div>
+      <h2 id="gameover-title">Checkmate!</h2>
+      <p id="gameover-reason">White wins by resignation.</p>
+      <div class="stats-preview">
+        <div><span class="num" id="stat-total-moves">0</span> Moves</div>
+        <div><span class="num" id="stat-accuracy">-</span> Outcome</div>
+      </div>
+      <button class="modal-btn primary" id="btn-play-again">Play Again</button>
+      <button class="modal-btn secondary" id="btn-close-gameover">Review Board</button>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="modal-settings">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Game Settings</h3>
+        <button class="close-btn" id="btn-close-settings">&times;</button>
+      </div>
+      <div class="setting-group">
+        <label>Game Mode</label>
+        <div class="segmented-control" id="mode-selector">
+          <button class="seg-btn active" data-mode="ai">Vs Computer</button>
+          <button class="seg-btn" data-mode="pvp">Pass & Play</button>
+        </div>
+      </div>
+      <div class="setting-group" id="difficulty-group">
+        <label>Computer Difficulty</label>
+        <div class="segmented-control" id="diff-selector">
+          <button class="seg-btn" data-diff="1">Novice</button>
+          <button class="seg-btn active" data-diff="2">Casual</button>
+          <button class="seg-btn" data-diff="3">Club</button>
+          <button class="seg-btn" data-diff="4">Master</button>
+        </div>
+      </div>
+      <div class="setting-group">
+        <label>Board Theme</label>
+        <div class="theme-grid" id="theme-selector">
+          <button class="theme-pill active" data-theme="emerald">Emerald</button>
+          <button class="theme-pill" data-theme="wood">Wood</button>
+          <button class="theme-pill" data-theme="midnight">Midnight</button>
+          <button class="theme-pill" data-theme="cyber">Cyber</button>
+        </div>
+      </div>
+      <div class="setting-group checkbox-group">
+        <label for="check-haptics">Haptic Vibration</label>
+        <input type="checkbox" id="check-haptics" checked />
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Modal -->
+  <div class="modal-overlay" id="modal-stats">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Your Statistics</h3>
+        <button class="close-btn" id="btn-close-stats">&times;</button>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <span class="stat-value" id="stats-games">0</span>
+          <span class="stat-label">Played</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-value" id="stats-wins">0</span>
+          <span class="stat-label">Wins</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-value" id="stats-losses">0</span>
+          <span class="stat-label">Losses</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-value" id="stats-draws">0</span>
+          <span class="stat-label">Draws</span>
+        </div>
+        <div class="stat-box highlight">
+          <span class="stat-value" id="stats-winrate">0%</span>
+          <span class="stat-label">Win Rate</span>
+        </div>
+        <div class="stat-box highlight">
+          <span class="stat-value" id="stats-streak">0</span>
+          <span class="stat-label">Win Streak</span>
+        </div>
+      </div>
+      <button class="modal-btn secondary" id="btn-reset-stats">Reset Records</button>
     </div>
   </div>
 
