@@ -2,119 +2,139 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Wizard's Chess: The Grand Duel</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+  />
+  <title>Wizard's Chess: The Grand Duel (Mobile Edition)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
-
-  <!-- Three.js, OrbitControls, and GSAP libraries -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 </head>
 <body>
-  <!-- 3D WebGL Canvas -->
-  <div id="webgl-container"></div>
+  <div id="game-app">
+    <!-- Screen FX Overlays -->
+    <div id="vignette-overlay"></div>
+    <div id="flash-overlay"></div>
 
-  <!-- Atmospheric Screen Overlays -->
-  <div id="vignette-overlay"></div>
-  <div id="flash-overlay"></div>
-
-  <!-- Top Banner / Game State HUD -->
-  <header id="ui-header">
-    <div class="header-center">
-      <h1 class="game-title">WIZARD’S CHESS</h1>
-      <div class="subtitle-flourish">THE GRAND DUEL</div>
-      <div class="turn-indicator-badge">
-        <span class="pulse-gem" id="turn-gem"></span>
-        <span id="turn-text">LUMOS ORDER’S TURN</span>
+    <!-- Top Header HUD -->
+    <header id="ui-header">
+      <div class="header-titles">
+        <h1 class="game-title">WIZARD’S CHESS</h1>
+        <div class="header-subtitle">THE GRAND DUEL</div>
       </div>
-    </div>
-  </header>
+      
+      <div class="hud-status-bar">
+        <div class="turn-badge">
+          <span class="pulse-gem" id="turn-gem"></span>
+          <span id="turn-text">LUMOS ORDER</span>
+        </div>
+        <div class="advantage-badge" id="material-advantage-text">EQUAL POWER</div>
+      </div>
+    </header>
 
-  <!-- Left Panel: Crypt of Casualties & Material Advantage -->
-  <aside id="ui-left-panel" class="parchment-glass">
-    <div class="panel-header">FALLEN CASUALTIES</div>
-    <div class="material-advantage-bar" id="material-advantage-text">EQUAL POWER</div>
+    <!-- Fallen Casualties Bars -->
+    <section class="graveyards-bar">
+      <div class="graveyard-row">
+        <span class="graveyard-tag">NOX:</span>
+        <div id="nox-graveyard" class="graveyard-slots"></div>
+      </div>
+      <div class="graveyard-row">
+        <span class="graveyard-tag">LUMOS:</span>
+        <div id="lumos-graveyard" class="graveyard-slots"></div>
+      </div>
+    </section>
 
-    <div class="graveyard-section">
-      <div class="graveyard-title">Lumos Order (White)</div>
-      <div id="white-graveyard" class="graveyard-slots"></div>
-    </div>
+    <!-- 2D Chess Arena -->
+    <main id="board-container">
+      <div id="board-frame">
+        <div id="chessboard" class="chessboard"></div>
+        <!-- 2D Particle & Combat Spell Canvas Overlay -->
+        <canvas id="fx-canvas"></canvas>
+      </div>
+    </main>
 
-    <div class="graveyard-divider"></div>
+    <!-- Quick Action Bar -->
+    <nav id="ui-action-bar">
+      <button id="btn-undo" class="action-btn" title="Undo Move">
+        <span class="btn-icon">↺</span>
+        <span class="btn-label">Undo</span>
+      </button>
+      <button id="btn-flip" class="action-btn" title="Flip Board">
+        <span class="btn-icon">⇅</span>
+        <span class="btn-label">Flip</span>
+      </button>
+      <button id="btn-log-toggle" class="action-btn" title="Duel Chronicle">
+        <span class="btn-icon">📜</span>
+        <span class="btn-label">Log</span>
+      </button>
+      <button id="btn-sound" class="action-btn" title="Toggle Audio">
+        <span class="btn-icon" id="sound-icon">🔊</span>
+        <span class="btn-label">Sound</span>
+      </button>
+      <button id="btn-restart" class="action-btn danger-btn" title="New Match">
+        <span class="btn-icon">⚔</span>
+        <span class="btn-label">Reset</span>
+      </button>
+    </nav>
 
-    <div class="graveyard-section">
-      <div class="graveyard-title">Nox Legion (Black)</div>
-      <div id="black-graveyard" class="graveyard-slots"></div>
-    </div>
-  </aside>
-
-  <!-- Right Panel: Duel Chronicle & SAN Move Log -->
-  <aside id="ui-right-panel" class="parchment-glass">
-    <div class="panel-header">DUEL CHRONICLE</div>
-    <div id="duel-log" class="chronicle-feed">
-      <div class="log-entry system-message">The duel chamber stirs. Cast your incantation.</div>
-    </div>
-  </aside>
-
-  <!-- Bottom Interactive Footer Controls -->
-  <footer id="ui-footer">
-    <div class="control-group">
+    <!-- Bottom Opponent Selector -->
+    <footer id="ui-footer-bar">
       <label for="ai-difficulty">Opponent:</label>
       <select id="ai-difficulty" class="fantasy-select">
-        <option value="1">Apprentice AI (Shallow)</option>
+        <option value="1">Apprentice AI (Fast)</option>
         <option value="2" selected>Auror Knight AI (Standard)</option>
-        <option value="3">Archmage AI (Pruned PST)</option>
-        <option value="pvp">Pass & Play (2 Player)</option>
+        <option value="3">Archmage AI (Deep)</option>
+        <option value="pvp">Pass &amp; Play (2P)</option>
       </select>
-    </div>
+    </footer>
 
-    <div class="button-row">
-      <button id="btn-cam-tactical" class="fantasy-btn" title="Tactical Top-Down View">Tactical</button>
-      <button id="btn-cam-duel" class="fantasy-btn" title="Cinematic Low Angle">Duel Angle</button>
-      <button id="btn-cam-reset" class="fantasy-btn" title="Standard Perspective">Free Cam</button>
-      <button id="btn-cam-flip" class="fantasy-btn" title="Flip Board Perspective">Flip Side</button>
-      <button id="btn-undo" class="fantasy-btn" title="Turn Back Time">Undo</button>
-      <button id="btn-sound" class="fantasy-btn audio-btn" title="Toggle Magical Audio">Sound: ON</button>
-      <button id="btn-restart" class="fantasy-btn danger-btn" title="Reset the board">Reset</button>
-    </div>
-  </footer>
-
-  <!-- Pawn Transfiguration / Promotion Modal Dialog -->
-  <div id="promotion-modal" class="modal-hidden">
-    <div class="modal-card promotion-card">
-      <h2>ARCANE TRANSFIGURATION</h2>
-      <p>Choose the form your ascended pawn shall assume:</p>
-      <div class="promotion-options">
-        <button class="promo-choice-btn" data-piece="q">
-          <span class="promo-glyph">♛</span>
-          <span class="promo-label">Queen</span>
-        </button>
-        <button class="promo-choice-btn" data-piece="n">
-          <span class="promo-glyph">♞</span>
-          <span class="promo-label">Knight</span>
-        </button>
-        <button class="promo-choice-btn" data-piece="r">
-          <span class="promo-glyph">♜</span>
-          <span class="promo-label">Rook</span>
-        </button>
-        <button class="promo-choice-btn" data-piece="b">
-          <span class="promo-glyph">♝</span>
-          <span class="promo-label">Bishop</span>
-        </button>
+    <!-- Chronicle Drawer / Bottom Sheet -->
+    <div id="chronicle-drawer" class="drawer-hidden">
+      <div class="drawer-header">
+        <span>DUEL CHRONICLE</span>
+        <button id="btn-close-drawer" class="drawer-close-btn">&times;</button>
+      </div>
+      <div id="duel-log" class="chronicle-feed">
+        <div class="log-entry system-message">The duel chamber stirs. Cast your incantation.</div>
       </div>
     </div>
-  </div>
+    <div id="drawer-backdrop" class="drawer-backdrop-hidden"></div>
 
-  <!-- End of Game Resolution Modal -->
-  <div id="game-modal" class="modal-hidden">
-    <div class="modal-card">
-      <h2 id="modal-title">CHECKMATE!</h2>
-      <p id="modal-desc">The Lumos Order has shattered the Obsidian Legion.</p>
-      <button id="modal-btn-restart" class="fantasy-btn gold-glow">Re-engage the Duel</button>
+    <!-- Promotion Transfiguration Modal -->
+    <div id="promotion-modal" class="modal-hidden">
+      <div class="modal-card">
+        <h2>TRANSFIGURATION</h2>
+        <p>Ascend your pawn into a higher order:</p>
+        <div class="promotion-options">
+          <button class="promo-choice-btn" data-piece="q">
+            <span class="promo-glyph">♛</span>
+            <span class="promo-label">Queen</span>
+          </button>
+          <button class="promo-choice-btn" data-piece="n">
+            <span class="promo-glyph">♞</span>
+            <span class="promo-label">Knight</span>
+          </button>
+          <button class="promo-choice-btn" data-piece="r">
+            <span class="promo-glyph">♜</span>
+            <span class="promo-label">Rook</span>
+          </button>
+          <button class="promo-choice-btn" data-piece="b">
+            <span class="promo-glyph">♝</span>
+            <span class="promo-label">Bishop</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- End Game Modal -->
+    <div id="game-modal" class="modal-hidden">
+      <div class="modal-card">
+        <h2 id="modal-title">CHECKMATE!</h2>
+        <p id="modal-desc">The Lumos Order has shattered the Nox Legion.</p>
+        <button id="modal-btn-restart" class="action-btn gold-glow">Re-engage Duel</button>
+      </div>
     </div>
   </div>
 
