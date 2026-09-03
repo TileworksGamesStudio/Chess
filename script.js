@@ -1,1335 +1,1491 @@
 /**
- * WIZARD'S CHESS 3D — FULL ENGINE & PROCEDURAL THREE.JS GRAPHICS
- * Featuring:
- *  - Full 3D WebGL stone sculptures casting realistic shadows
- *  - Voronoi-like stone shattering particle physics on captures
- *  - Dynamic Kill-Cam zoom and camera lerping
- *  - 4th-Wall living dialogue system
- *  - Dark Wizard Minimax AI
- *  - Real-time Web Audio API sound synthesizer
+ * WIZARD'S CHESS: THE GRAND DUEL
+ * A complete 3D magical chess experience with procedural Three.js geometry,
+ * GSAP combat choreography, Web Audio API sound synthesis, and Minimax AI.
  */
 
-(function () {
-  'use strict';
+// ==========================================
+// 1. PROCEDURAL WEB AUDIO SYNTHESIZER
+// ==========================================
+class MagicSoundEngine {
+  constructor() {
+    this.ctx = null;
+    this.muted = false;
+    this.initAudioContext();
+  }
 
-  /* ==========================================================================
-     1. PROCEDURAL MAGIC SOUND SYNTHESIZER (WEB AUDIO API)
-     ========================================================================== */
-  class SoundCaster {
-    constructor() {
-      this.ctx = null;
-      this.isMuted = false;
+  initAudioContext() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass && !this.ctx) {
+      this.ctx = new AudioContextClass();
+    }
+  }
+
+  ensureContext() {
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
+
+  playSelect() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(520, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.12);
+
+    gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.22);
+  }
+
+  playStoneMove() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const osc = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(110, this.ctx.currentTime);
+    osc.frequency.linearRampToValueAtTime(65, this.ctx.currentTime + 0.35);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(350, this.ctx.currentTime);
+
+    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.42);
+  }
+
+  playSpellCast() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1400, this.ctx.currentTime + 0.25);
+
+    gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.28);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.3);
+  }
+
+  playShatterExplosion() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    // Sub-bass thump
+    const subOsc = this.ctx.createOscillator();
+    const subGain = this.ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(150, this.ctx.currentTime);
+    subOsc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.5);
+    subGain.gain.setValueAtTime(0.6, this.ctx.currentTime);
+    subGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.55);
+    subOsc.connect(subGain);
+    subGain.connect(this.ctx.destination);
+    subOsc.start();
+    subOsc.stop(this.ctx.currentTime + 0.6);
+
+    // Stone shatter noise burst
+    const bufferSize = this.ctx.sampleRate * 0.4;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.25));
     }
 
-    init() {
-      if (!this.ctx) {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        this.ctx = new AudioContext();
-      }
-      if (this.ctx.state === 'suspended') {
-        this.ctx.resume();
-      }
-    }
+    const noiseSource = this.ctx.createBufferSource();
+    noiseSource.buffer = buffer;
 
-    playGlide() {
-      if (this.isMuted) return;
-      this.init();
-      const t = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      const filter = this.ctx.createBiquadFilter();
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(800, this.ctx.currentTime);
+    filter.Q.setValueAtTime(1.5, this.ctx.currentTime);
 
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(120, t);
-      osc.frequency.exponentialRampToValueAtTime(30, t + 0.35);
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
 
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(400, t);
+    noiseSource.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(this.ctx.destination);
+    noiseSource.start();
+  }
 
-      gain.gain.setValueAtTime(0.3, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+  playVictoryChime() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
 
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(t);
-      osc.stop(t + 0.36);
-    }
-
-    playShatter() {
-      if (this.isMuted) return;
-      this.init();
-      const t = this.ctx.currentTime;
-
-      // Heavy bass impact rumble
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(260, t);
-      osc.frequency.exponentialRampToValueAtTime(20, t + 0.5);
-
-      gain.gain.setValueAtTime(0.8, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(t);
-      osc.stop(t + 0.56);
-
-      // Shattered rock noise
-      const bufferSize = this.ctx.sampleRate * 0.45;
-      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        data[i] = (Math.random() * 2 - 1) * Math.exp(-5 * (i / bufferSize));
-      }
-      const noise = this.ctx.createBufferSource();
-      noise.buffer = buffer;
-
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.setValueAtTime(1100, t);
-      filter.Q.setValueAtTime(2, t);
-
-      const noiseGain = this.ctx.createGain();
-      noiseGain.gain.setValueAtTime(0.9, t);
-      noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.45);
-
-      noise.connect(filter);
-      filter.connect(noiseGain);
-      noiseGain.connect(this.ctx.destination);
-      noise.start(t);
-    }
-
-    playChime() {
-      if (this.isMuted) return;
-      this.init();
-      const t = this.ctx.currentTime;
+    const chords = [523.25, 659.25, 783.99, 1046.50]; // C Major
+    chords.forEach((freq, idx) => {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(520, t);
-      osc.frequency.exponentialRampToValueAtTime(840, t + 0.2);
+      osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.08);
 
-      gain.gain.setValueAtTime(0.2, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+      gain.gain.setValueAtTime(0.001, this.ctx.currentTime + idx * 0.08);
+      gain.gain.linearRampToValueAtTime(0.2, this.ctx.currentTime + idx * 0.08 + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + idx * 0.08 + 1.2);
 
       osc.connect(gain);
       gain.connect(this.ctx.destination);
-      osc.start(t);
-      osc.stop(t + 0.26);
-    }
+      osc.start(this.ctx.currentTime + idx * 0.08);
+      osc.stop(this.ctx.currentTime + idx * 0.08 + 1.3);
+    });
   }
-  const sounds = new SoundCaster();
+}
 
-  /* ==========================================================================
-     2. 4TH-WALL LIVING DIALOGUE ENGINE
-     ========================================================================== */
-  const QUOTES = {
-    p: {
-      avatar: '♟️',
-      name: 'Vanguard Footman',
-      taps: [
-        "Hey! Mind the fingernails on the glass! I'm chiselled granite!",
-        "Yes, I know I only march forward. Don't sacrifice me like Ron Weasley!",
-        "You're planning to trade me for a pawn, aren't you? Barbaric Muggle.",
-        "Behind that touchscreen you look very indecisive."
-      ],
-      moves: [
-        "Marching forward! Clear the path!",
-        "One step closer to the sorcerer's glory!",
-        "I advance into the mist."
-      ],
-      kills: [
-        "CRUMBLED! Into dust with you!",
-        "Stone daggers through their heart!",
-        "Did you see that strike, Player?!"
-      ],
-      dies: [
-        "I was three turns away from promotion... argh!",
-        "You blundered me! Merlin curse your clumsy thumbs!",
-        "Tell Ron... I did my duty..."
-      ]
-    },
-    n: {
-      avatar: '♞',
-      name: 'Armored Stallion',
-      taps: [
-        "NEIGH! Do you even know how the 'L' maneuver works?",
-        "Hands off the saddle, mortal! My horse bites through phone screens.",
-        "Leaping over heads is my specialty. Point me at their King!",
-        "Stop tapping my hooves and make up your mind."
-      ],
-      moves: [
-        "Galloping across the runic chessboard!",
-        "Flanking jump executed with stone perfection!",
-        "A swift leap into the dark fog!"
-      ],
-      kills: [
-        "TRAMPLED INTO RUBBLE! Glories of the cavalry!",
-        "My lance pulverized their stone armor!",
-        "Out of my way, pebble!"
-      ],
-      dies: [
-        "A cowardly ambush! My reins are cut...",
-        "You left my flank unguarded, you armchair wizard!",
-        "Even Pegasus falls under reckless command..."
-      ]
-    },
-    b: {
-      avatar: '♝',
-      name: 'Arcane Cleric',
-      taps: [
-        "I walk along holy diagonals. Respect the arcane geometry!",
-        "May Merlin grant you tactical acumen... because that move was terrible.",
-        "I sense dark omens in your next tap. Tread cautiously.",
-        "Do not smudge my sacred mitre!"
-      ],
-      moves: [
-        "Sliding upon the ley lines of magic.",
-        "Diagonal judgment incoming.",
-        "The ancient scriptures decreed this position."
-      ],
-      kills: [
-        "INCENDIO! Vaporized to cinder and stone dust!",
-        "A holy cleansing of the enemy rank!",
-        "Banished from this chessboard!"
-      ],
-      dies: [
-        "My protective wards... breached by your negligence...",
-        "I foresaw this death in the stars... you blundered me!",
-        "Merlin... forgive this player's clumsy fingers..."
-      ]
-    },
-    r: {
-      avatar: '♜',
-      name: 'Citadel Golem',
-      taps: [
-        "THUD. THUD. Keep poking, mortal. I feel nothing.",
-        "I am twenty tons of enchanted masonry. Move me when you want carnage.",
-        "Did you drop your phone? The whole arena vibrated.",
-        "Straight ranks only. Like a siege engine."
-      ],
-      moves: [
-        "HEAVY FOOTSTEPS SHAKE THE DUNGEON.",
-        "The fortress rolls forward.",
-        "Clear the file! Citadel rolling through!"
-      ],
-      kills: [
-        "BOMBARDA! SMASHED INTO POWDER!",
-        "PULVERIZED BENEATH TWENTY TONS OF SLATE!",
-        "CLEANUP ON TILE! BRING A BROOM!"
-      ],
-      dies: [
-        "HOW CAN A CITADEL CRUMBLE?!",
-        "My ramparts... cracked wide open...",
-        "You traded ME for a bishop?! Are you mad?!"
-      ]
-    },
-    q: {
-      avatar: '♛',
-      name: 'High Battle Sorceress',
-      taps: [
-        "Kneel before you tap my tile, mortal.",
-        "If you blunder me, I will hex your smartphone battery to 1%.",
-        "I am the most lethal entity on this stone grid. Use me wisely.",
-        "Yes, darling, I go wherever I please. Bow down."
-      ],
-      moves: [
-        "The Queen glides where lesser stones dare not tread.",
-        "Tremble, for arcane supremacy has arrived.",
-        "Every diagonal and rank belongs to my command."
-      ],
-      kills: [
-        "OBLITERATED! You dared cross my majesty?!",
-        "Pure cataclysmic lightning! Nothing remains!",
-        "A flawless execution. Applaud me behind that screen!"
-      ],
-      dies: [
-        "IMPOSSIBLE! YOU LET ME DIE?!",
-        "A catastrophe of epic proportions! Resign immediately!",
-        "I shall haunt your touchscreen for all eternity!"
-      ]
-    },
-    k: {
-      avatar: '♚',
-      name: 'The Crowned Monarch',
-      taps: [
-        "Gently! A King's crown is heavy and priceless!",
-        "I only step one tile at a time. Monarchs do not jog.",
-        "Keep those dark abominations away from my royal presence!",
-        "Are you protecting me, or are you in league with Voldemort?"
-      ],
-      moves: [
-        "A regal, measured relocation.",
-        "The Sovereign surveys the carnage from safety.",
-        "Stepping back to maintain our dignity."
-      ],
-      kills: [
-        "Smitten down by the royal scepter!",
-        "Even crowned kings must execute rebels!",
-        "Perish, insolent chess pebble!"
-      ],
-      dies: [
-        "THE CROWN HAS FALLEN! The realm is lost...",
-        "Checkmate?! You had ONE duty, mortal!",
-        "My kingdom traded away for your reckless offense..."
-      ]
-    }
-  };
+const soundEngine = new MagicSoundEngine();
 
-  const RANDOM_LORE = [
-    { name: "Albus the Watcher", avatar: "🧙‍♂️", text: "Remember, wizard's chess is completely barbaric compared to Muggle games." },
-    { name: "Board Spirit", avatar: "📱", text: "Your screen is slightly tilted. Keep your device steady while chanting!" },
-    { name: "White Pawn", avatar: "♟️", text: "Psst! The AI is calculating five branches ahead. You're just winging it, aren't you?" },
-    { name: "Ancient Glyphs", avatar: "⚡", text: "The stone slabs channel your touch. Tap with conviction!" }
-  ];
+// ==========================================
+// 2. PROCEDURAL 3D PIECE GENERATOR
+// ==========================================
+class PieceMeshBuilder {
+  constructor() {
+    // Ivory / White Lumos Material
+    this.whiteMaterial = new THREE.MeshStandardMaterial({
+      color: 0xede8dc,
+      roughness: 0.25,
+      metalness: 0.15,
+      bumpScale: 0.05
+    });
 
-  /* ==========================================================================
-     3. COMPLETE CHESS ENGINE (STANDARDS, CHECKS & AI)
-     ========================================================================== */
-  class ChessEngine {
-    constructor() {
-      this.reset();
-    }
+    // Obsidian / Black Nox Material
+    this.blackMaterial = new THREE.MeshStandardMaterial({
+      color: 0x1a1622,
+      roughness: 0.35,
+      metalness: 0.4,
+      bumpScale: 0.08
+    });
 
-    reset() {
-      this.board = Array(8).fill(null).map(() => Array(8).fill(null));
-      const order = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'];
-      for (let c = 0; c < 8; c++) {
-        this.board[0][c] = { type: order[c], color: 'b' };
-        this.board[1][c] = { type: 'p', color: 'b' };
-        this.board[6][c] = { type: 'p', color: 'w' };
-        this.board[7][c] = { type: order[c], color: 'w' };
-      }
-      this.turn = 'w';
-      this.selected = null;
-      this.validMoves = [];
-      this.isGameOver = false;
-    }
+    // Glowing accents
+    this.whiteRuneMat = new THREE.MeshStandardMaterial({
+      color: 0x81d4fa,
+      emissive: 0x29b6f6,
+      emissiveIntensity: 0.75,
+      roughness: 0.1
+    });
 
-    clone(b) {
-      return b.map(row => row.map(cell => (cell ? { ...cell } : null)));
-    }
+    this.blackRuneMat = new THREE.MeshStandardMaterial({
+      color: 0xff4081,
+      emissive: 0xf50057,
+      emissiveIntensity: 0.75,
+      roughness: 0.1
+    });
 
-    inBounds(r, c) {
-      return r >= 0 && r < 8 && c >= 0 && c < 8;
-    }
-
-    getRawMoves(r, c, bState = this.board) {
-      const p = bState[r][c];
-      if (!p) return [];
-      const moves = [];
-      const fwd = p.color === 'w' ? -1 : 1;
-
-      if (p.type === 'p') {
-        const nr = r + fwd;
-        if (this.inBounds(nr, c) && !bState[nr][c]) {
-          moves.push({ r: nr, c: c });
-          const startR = p.color === 'w' ? 6 : 1;
-          const nnr = r + fwd * 2;
-          if (r === startR && !bState[nnr][c]) {
-            moves.push({ r: nnr, c: c });
-          }
-        }
-        [-1, 1].forEach(dc => {
-          const nc = c + dc;
-          if (this.inBounds(nr, nc)) {
-            const tgt = bState[nr][nc];
-            if (tgt && tgt.color !== p.color) {
-              moves.push({ r: nr, c: nc, capture: true });
-            }
-          }
-        });
-      } else if (p.type === 'n') {
-        const deltas = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
-        deltas.forEach(([dr, dc]) => {
-          const nr = r + dr, nc = c + dc;
-          if (this.inBounds(nr, nc)) {
-            const tgt = bState[nr][nc];
-            if (!tgt) moves.push({ r: nr, c: nc });
-            else if (tgt.color !== p.color) moves.push({ r: nr, c: nc, capture: true });
-          }
-        });
-      } else if (p.type === 'b' || p.type === 'r' || p.type === 'q') {
-        const dirs = [];
-        if (p.type === 'b' || p.type === 'q') dirs.push([-1,-1],[-1,1],[1,-1],[1,1]);
-        if (p.type === 'r' || p.type === 'q') dirs.push([-1,0],[1,0],[0,-1],[0,1]);
-
-        dirs.forEach(([dr, dc]) => {
-          let step = 1;
-          while (true) {
-            const nr = r + dr * step, nc = c + dc * step;
-            if (!this.inBounds(nr, nc)) break;
-            const tgt = bState[nr][nc];
-            if (!tgt) {
-              moves.push({ r: nr, c: nc });
-            } else {
-              if (tgt.color !== p.color) moves.push({ r: nr, c: nc, capture: true });
-              break;
-            }
-            step++;
-          }
-        });
-      } else if (p.type === 'k') {
-        for (let dr = -1; dr <= 1; dr++) {
-          for (let dc = -1; dc <= 1; dc++) {
-            if (dr === 0 && dc === 0) continue;
-            const nr = r + dr, nc = c + dc;
-            if (this.inBounds(nr, nc)) {
-              const tgt = bState[nr][nc];
-              if (!tgt) moves.push({ r: nr, c: nc });
-              else if (tgt.color !== p.color) moves.push({ r: nr, c: nc, capture: true });
-            }
-          }
-        }
-      }
-      return moves;
-    }
-
-    isSquareAttacked(r, c, attackerColor, bState) {
-      for (let row = 0; row < 8; row++) {
-        for (let col = 0; col < 8; col++) {
-          const p = bState[row][col];
-          if (p && p.color === attackerColor) {
-            if (p.type === 'p') {
-              const fwd = p.color === 'w' ? -1 : 1;
-              if (row + fwd === r && (col - 1 === c || col + 1 === c)) return true;
-            } else {
-              const m = this.getRawMoves(row, col, bState);
-              if (m.some(x => x.r === r && x.c === c)) return true;
-            }
-          }
-        }
-      }
-      return false;
-    }
-
-    isKingInCheck(color, bState = this.board) {
-      let kp = null;
-      for (let r = 0; r < 8; r++) {
-        for (let c = 0; c < 8; c++) {
-          if (bState[r][c] && bState[r][c].type === 'k' && bState[r][c].color === color) {
-            kp = { r, c };
-            break;
-          }
-        }
-        if (kp) break;
-      }
-      if (!kp) return false;
-      return this.isSquareAttacked(kp.r, kp.c, color === 'w' ? 'b' : 'w', bState);
-    }
-
-    getLegalMoves(r, c) {
-      const p = this.board[r][c];
-      if (!p || p.color !== this.turn) return [];
-      const raw = this.getRawMoves(r, c, this.board);
-      const legals = [];
-
-      for (const m of raw) {
-        const testB = this.clone(this.board);
-        testB[m.r][m.c] = testB[r][c];
-        testB[r][c] = null;
-        if (!this.isKingInCheck(p.color, testB)) {
-          legals.push(m);
-        }
-      }
-      return legals;
-    }
-
-    getAllLegalMoves(color) {
-      const all = [];
-      for (let r = 0; r < 8; r++) {
-        for (let c = 0; c < 8; c++) {
-          if (this.board[r][c] && this.board[r][c].color === color) {
-            const ms = this.getLegalMoves(r, c);
-            ms.forEach(m => all.push({ from: { r, c }, to: m }));
-          }
-        }
-      }
-      return all;
-    }
-
-    applyMove(from, to) {
-      const p = this.board[from.r][from.c];
-      const victim = this.board[to.r][to.c];
-
-      // Pawn promotion to Queen
-      if (p.type === 'p' && (to.r === 0 || to.r === 7)) {
-        p.type = 'q';
-      }
-
-      this.board[to.r][to.c] = p;
-      this.board[from.r][from.c] = null;
-
-      this.turn = this.turn === 'w' ? 'b' : 'w';
-
-      const inCheck = this.isKingInCheck(this.turn);
-      const nextMoves = this.getAllLegalMoves(this.turn);
-      const isCheckmate = inCheck && nextMoves.length === 0;
-      const isStalemate = !inCheck && nextMoves.length === 0;
-
-      if (isCheckmate || isStalemate) {
-        this.isGameOver = true;
-      }
-
-      return { piece: p, victim, inCheck, isCheckmate, isStalemate };
-    }
-
-    evalBoard(bState) {
-      const vals = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
-      let score = 0;
-      for (let r = 0; r < 8; r++) {
-        for (let c = 0; c < 8; c++) {
-          const p = bState[r][c];
-          if (p) {
-            let v = vals[p.type];
-            if ((r === 3 || r === 4) && (c === 3 || c === 4)) v += 25;
-            score += p.color === 'b' ? v : -v;
-          }
-        }
-      }
-      return score;
-    }
+    this.goldTrimMat = new THREE.MeshStandardMaterial({
+      color: 0xd4af37,
+      metalness: 0.8,
+      roughness: 0.3
+    });
   }
 
-  /* ==========================================================================
-     4. PROCEDURAL TEXTURE GENERATOR (ROUGH CHISELLED STONE)
-     ========================================================================== */
-  function createProceduralStoneTexture(isDark = false) {
-    const size = 512;
-    const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d');
+  createPedestal(material, runeMat) {
+    const group = new THREE.Group();
+    // Stepped plinth
+    const baseGeo = new THREE.CylinderGeometry(0.38, 0.42, 0.15, 16);
+    const base = new THREE.Mesh(baseGeo, material);
+    base.position.y = 0.075;
+    base.castShadow = true;
+    base.receiveShadow = true;
+    group.add(base);
 
-    // Base tone
-    ctx.fillStyle = isDark ? '#1a1622' : '#d5c7b3';
-    ctx.fillRect(0, 0, size, size);
+    // Glowing Leyline Inset
+    const runeRingGeo = new THREE.TorusGeometry(0.36, 0.02, 8, 24);
+    const ring = new THREE.Mesh(runeRingGeo, runeMat);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 0.15;
+    group.add(ring);
 
-    // Stone grain noise
-    const imgData = ctx.getImageData(0, 0, size, size);
-    const d = imgData.data;
-    for (let i = 0; i < d.length; i += 4) {
-      const n = (Math.random() - 0.5) * (isDark ? 35 : 45);
-      d[i] = Math.min(255, Math.max(0, d[i] + n));
-      d[i+1] = Math.min(255, Math.max(0, d[i+1] + n));
-      d[i+2] = Math.min(255, Math.max(0, d[i+2] + n));
-    }
-    ctx.putImageData(imgData, 0, 0);
-
-    // Weathered crack lines
-    ctx.strokeStyle = isDark ? 'rgba(0,0,0,0.4)' : 'rgba(90,80,70,0.3)';
-    ctx.lineWidth = 1.5;
-    for (let j = 0; j < 8; j++) {
-      ctx.beginPath();
-      let x = Math.random() * size, y = Math.random() * size;
-      ctx.moveTo(x, y);
-      for (let k = 0; k < 6; k++) {
-        x += (Math.random() - 0.5) * 80;
-        y += (Math.random() - 0.5) * 80;
-        ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-    }
-
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.wrapS = THREE.RepeatWrapping;
-    tex.wrapT = THREE.RepeatWrapping;
-    return tex;
+    return group;
   }
 
-  /* ==========================================================================
-     5. THREE.JS 3D SCENE, PIECES & VOLUMETRIC DUNGEON
-     ========================================================================== */
-  class WizardScene {
-    constructor(container) {
-      this.container = container;
-      this.piecesGroup = new THREE.Group();
-      this.boardGroup = new THREE.Group();
-      this.tileMeshes = [];
-      this.shards = [];
-      this.pieceMeshes = {}; // keyed by "r_c"
+  createPawn(color) {
+    const mat = color === 'w' ? this.whiteMaterial : this.blackMaterial;
+    const runeMat = color === 'w' ? this.whiteRuneMat : this.blackRuneMat;
+    const group = this.createPedestal(mat, runeMat);
 
-      this.initThree();
-      this.initEnvironment();
-      this.initBoardMesh();
+    // Footman body armor
+    const bodyGeo = new THREE.ConeGeometry(0.25, 0.6, 12);
+    const body = new THREE.Mesh(bodyGeo, mat);
+    body.position.y = 0.42;
+    body.castShadow = true;
+    group.add(body);
+
+    // Shield
+    const shieldGeo = new THREE.BoxGeometry(0.12, 0.32, 0.04);
+    const shield = new THREE.Mesh(shieldGeo, this.goldTrimMat);
+    shield.position.set(0.2, 0.45, 0.12);
+    shield.rotation.y = -Math.PI / 6;
+    group.add(shield);
+
+    // Spiked War Helmet
+    const headGeo = new THREE.SphereGeometry(0.16, 12, 12);
+    const head = new THREE.Mesh(headGeo, mat);
+    head.position.y = 0.75;
+    head.castShadow = true;
+    group.add(head);
+
+    return group;
+  }
+
+  createRook(color) {
+    const mat = color === 'w' ? this.whiteMaterial : this.blackMaterial;
+    const runeMat = color === 'w' ? this.whiteRuneMat : this.blackRuneMat;
+    const group = this.createPedestal(mat, runeMat);
+
+    // Castle Bastion Column
+    const colGeo = new THREE.CylinderGeometry(0.28, 0.35, 0.75, 12);
+    const col = new THREE.Mesh(colGeo, mat);
+    col.position.y = 0.52;
+    col.castShadow = true;
+    group.add(col);
+
+    // Turret Crenellations
+    const turretGeo = new THREE.CylinderGeometry(0.36, 0.28, 0.3, 8);
+    const turret = new THREE.Mesh(turretGeo, mat);
+    turret.position.y = 0.95;
+    turret.castShadow = true;
+    group.add(turret);
+
+    // Inner Arcane Brazier
+    const crystalGeo = new THREE.OctahedronGeometry(0.12);
+    const crystal = new THREE.Mesh(crystalGeo, runeMat);
+    crystal.position.y = 1.12;
+    group.add(crystal);
+
+    return group;
+  }
+
+  createKnight(color) {
+    const mat = color === 'w' ? this.whiteMaterial : this.blackMaterial;
+    const runeMat = color === 'w' ? this.whiteRuneMat : this.blackRuneMat;
+    const group = this.createPedestal(mat, runeMat);
+
+    // War Steed Torso
+    const torsoGeo = new THREE.CylinderGeometry(0.18, 0.3, 0.55, 8);
+    const torso = new THREE.Mesh(torsoGeo, mat);
+    torso.position.set(0, 0.42, -0.05);
+    torso.rotation.x = Math.PI / 10;
+    torso.castShadow = true;
+    group.add(torso);
+
+    // Arching Pegasus/Horse Neck & Head
+    const headGeo = new THREE.BoxGeometry(0.2, 0.35, 0.4);
+    const head = new THREE.Mesh(headGeo, mat);
+    head.position.set(0, 0.75, 0.1);
+    head.rotation.x = -Math.PI / 5;
+    head.castShadow = true;
+    group.add(head);
+
+    // Horn / Spiked Mane
+    const hornGeo = new THREE.ConeGeometry(0.06, 0.3, 6);
+    const horn = new THREE.Mesh(hornGeo, this.goldTrimMat);
+    horn.position.set(0, 0.95, 0.2);
+    horn.rotation.x = Math.PI / 4;
+    group.add(horn);
+
+    return group;
+  }
+
+  createBishop(color) {
+    const mat = color === 'w' ? this.whiteMaterial : this.blackMaterial;
+    const runeMat = color === 'w' ? this.whiteRuneMat : this.blackRuneMat;
+    const group = this.createPedestal(mat, runeMat);
+
+    // Cloaked Sorcerer Body
+    const robeGeo = new THREE.CylinderGeometry(0.15, 0.32, 0.85, 10);
+    const robe = new THREE.Mesh(robeGeo, mat);
+    robe.position.y = 0.55;
+    robe.castShadow = true;
+    group.add(robe);
+
+    // Pointed Sorcerer Mitre / Hood
+    const hoodGeo = new THREE.ConeGeometry(0.22, 0.45, 10);
+    const hood = new THREE.Mesh(hoodGeo, mat);
+    hood.position.y = 1.05;
+    hood.castShadow = true;
+    group.add(hood);
+
+    // Sorcerer's Wand
+    const wandGeo = new THREE.CylinderGeometry(0.02, 0.03, 0.6, 6);
+    const wand = new THREE.Mesh(wandGeo, this.goldTrimMat);
+    wand.position.set(0.22, 0.65, 0.12);
+    wand.rotation.z = -Math.PI / 8;
+    group.add(wand);
+
+    // Wand Tip Arcane Sphere
+    const tipGeo = new THREE.SphereGeometry(0.05, 8, 8);
+    const tip = new THREE.Mesh(tipGeo, runeMat);
+    tip.position.set(0.33, 0.9, 0.12);
+    group.add(tip);
+
+    return group;
+  }
+
+  createQueen(color) {
+    const mat = color === 'w' ? this.whiteMaterial : this.blackMaterial;
+    const runeMat = color === 'w' ? this.whiteRuneMat : this.blackRuneMat;
+    const group = this.createPedestal(mat, runeMat);
+
+    // Royal Gown
+    const gownGeo = new THREE.CylinderGeometry(0.16, 0.35, 1.0, 14);
+    const gown = new THREE.Mesh(gownGeo, mat);
+    gown.position.y = 0.65;
+    gown.castShadow = true;
+    group.add(gown);
+
+    // Gilded Collar
+    const collarGeo = new THREE.TorusGeometry(0.2, 0.04, 8, 16);
+    const collar = new THREE.Mesh(collarGeo, this.goldTrimMat);
+    collar.position.y = 1.15;
+    collar.rotation.x = Math.PI / 2;
+    group.add(collar);
+
+    // Crown of Radiance
+    const crownGeo = new THREE.CylinderGeometry(0.25, 0.14, 0.22, 8);
+    const crown = new THREE.Mesh(crownGeo, this.goldTrimMat);
+    crown.position.y = 1.28;
+    group.add(crown);
+
+    // Floating Arcane Core
+    const coreGeo = new THREE.OctahedronGeometry(0.08);
+    const core = new THREE.Mesh(coreGeo, runeMat);
+    core.position.y = 1.45;
+    core.name = "floatingCore";
+    group.add(core);
+
+    return group;
+  }
+
+  createKing(color) {
+    const mat = color === 'w' ? this.whiteMaterial : this.blackMaterial;
+    const runeMat = color === 'w' ? this.whiteRuneMat : this.blackRuneMat;
+    const group = this.createPedestal(mat, runeMat);
+
+    // Heavy Royal Armor
+    const armorGeo = new THREE.CylinderGeometry(0.22, 0.36, 1.1, 12);
+    const armor = new THREE.Mesh(armorGeo, mat);
+    armor.position.y = 0.7;
+    armor.castShadow = true;
+    group.add(armor);
+
+    // High Arch Cross Crown
+    const crownGeo = new THREE.CylinderGeometry(0.26, 0.2, 0.3, 6);
+    const crown = new THREE.Mesh(crownGeo, this.goldTrimMat);
+    crown.position.y = 1.35;
+    group.add(crown);
+
+    // Royal Greatsword
+    const swordBladeGeo = new THREE.BoxGeometry(0.06, 0.75, 0.02);
+    const blade = new THREE.Mesh(swordBladeGeo, this.goldTrimMat);
+    blade.position.set(0.24, 0.45, 0.18);
+    blade.rotation.x = Math.PI / 18;
+    group.add(blade);
+
+    // King's Crest Ruby/Sapphire
+    const crestGeo = new THREE.SphereGeometry(0.08, 8, 8);
+    const crest = new THREE.Mesh(crestGeo, runeMat);
+    crest.position.y = 1.55;
+    group.add(crest);
+
+    return group;
+  }
+
+  buildPiece(type, color) {
+    let pieceGroup;
+    switch (type.toLowerCase()) {
+      case 'p': pieceGroup = this.createPawn(color); break;
+      case 'r': pieceGroup = this.createRook(color); break;
+      case 'n': pieceGroup = this.createKnight(color); break;
+      case 'b': pieceGroup = this.createBishop(color); break;
+      case 'q': pieceGroup = this.createQueen(color); break;
+      case 'k': pieceGroup = this.createKing(color); break;
+      default: pieceGroup = this.createPawn(color);
+    }
+    pieceGroup.userData = { type: type.toLowerCase(), color: color };
+    return pieceGroup;
+  }
+}
+
+// ==========================================
+// 3. COMPLETE CHESS LOGIC ENGINE
+// ==========================================
+class ChessEngine {
+  constructor() {
+    this.reset();
+  }
+
+  reset() {
+    // 8x8 matrix representation: lowercase = black, uppercase = white
+    this.board = [
+      ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
+      ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
+      [null, null, null, null, null, null, null, null],
+      [null, null, null, null, null, null, null, null],
+      [null, null, null, null, null, null, null, null],
+      [null, null, null, null, null, null, null, null],
+      ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
+      ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
+    ];
+    this.turn = 'w'; // 'w' or 'b'
+    this.history = [];
+  }
+
+  cloneBoard(board) {
+    return board.map(row => [...row]);
+  }
+
+  isPieceWhite(piece) {
+    if (!piece) return false;
+    return piece === piece.toUpperCase();
+  }
+
+  getPieceColor(piece) {
+    if (!piece) return null;
+    return this.isPieceWhite(piece) ? 'w' : 'b';
+  }
+
+  isValidPos(r, c) {
+    return r >= 0 && r < 8 && c >= 0 && c < 8;
+  }
+
+  getRawMoves(r, c, board = this.board) {
+    const piece = board[r][c];
+    if (!piece) return [];
+    const color = this.getPieceColor(piece);
+    const type = piece.toLowerCase();
+    const moves = [];
+
+    const addMove = (tr, tc) => {
+      if (!this.isValidPos(tr, tc)) return false;
+      const target = board[tr][tc];
+      if (!target) {
+        moves.push({ from: { r, c }, to: { r: tr, c: tc } });
+        return true; // continue ray
+      }
+      if (this.getPieceColor(target) !== color) {
+        moves.push({ from: { r, c }, to: { r: tr, c: tc }, capture: target });
+      }
+      return false; // blocked
+    };
+
+    if (type === 'p') {
+      const dir = color === 'w' ? -1 : 1;
+      const startRow = color === 'w' ? 6 : 1;
+      // 1 step forward
+      if (this.isValidPos(r + dir, c) && !board[r + dir][c]) {
+        moves.push({ from: { r, c }, to: { r: r + dir, c } });
+        // 2 steps forward
+        if (r === startRow && !board[r + 2 * dir][c]) {
+          moves.push({ from: { r, c }, to: { r: r + 2 * dir, c } });
+        }
+      }
+      // Diagonal captures
+      [-1, 1].forEach(dc => {
+        const tr = r + dir;
+        const tc = c + dc;
+        if (this.isValidPos(tr, tc) && board[tr][tc] && this.getPieceColor(board[tr][tc]) !== color) {
+          moves.push({ from: { r, c }, to: { r: tr, c: tc }, capture: board[tr][tc] });
+        }
+      });
     }
 
-    initThree() {
-      this.scene = new THREE.Scene();
-      this.scene.fog = new THREE.FogExp2(0x060409, 0.024);
+    if (type === 'r' || type === 'q') {
+      const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      dirs.forEach(([dr, dc]) => {
+        let step = 1;
+        while (addMove(r + dr * step, c + dc * step)) step++;
+      });
+    }
 
-      this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-      this.cameraTarget = new THREE.Vector3(0, 0, 0);
+    if (type === 'b' || type === 'q') {
+      const dirs = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+      dirs.forEach(([dr, dc]) => {
+        let step = 1;
+        while (addMove(r + dr * step, c + dc * step)) step++;
+      });
+    }
 
-      this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-      this.renderer.setSize(window.innerWidth, window.innerHeight);
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      this.renderer.shadowMap.enabled = true;
-      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      this.container.appendChild(this.renderer.domElement);
-
-      this.scene.add(this.boardGroup);
-      this.scene.add(this.piecesGroup);
-
-      // Camera presets
-      this.camModes = [
-        { name: "Cinematic", pos: new THREE.Vector3(0, 7.8, 8.8), target: new THREE.Vector3(0, -0.2, 0.3) },
-        { name: "Top-Down",  pos: new THREE.Vector3(0, 12.0, 0.1), target: new THREE.Vector3(0, 0, 0) },
-        { name: "Side View", pos: new THREE.Vector3(9.2, 5.5, 0), target: new THREE.Vector3(0, 0, 0) }
+    if (type === 'n') {
+      const jumps = [
+        [-2, -1], [-2, 1], [-1, -2], [-1, 2],
+        [1, -2], [1, 2], [2, -1], [2, 1]
       ];
-      this.currentCamIdx = 0;
-      this.setCameraPreset(0);
-
-      window.addEventListener('resize', () => this.onResize());
+      jumps.forEach(([dr, dc]) => addMove(r + dr, c + dc));
     }
 
-    initEnvironment() {
-      // Ambient ancient moonlight
-      const amb = new THREE.AmbientLight(0x282038, 1.4);
-      this.scene.add(amb);
+    if (type === 'k') {
+      const steps = [
+        [-1, -1], [-1, 0], [-1, 1],
+        [0, -1],           [0, 1],
+        [1, -1],  [1, 0],  [1, 1]
+      ];
+      steps.forEach(([dr, dc]) => addMove(r + dr, c + dc));
+    }
 
-      // Golden torch light (White Order side)
-      this.torchWhite = new THREE.PointLight(0xffb74d, 2.2, 24);
-      this.torchWhite.position.set(-6, 7, 7);
-      this.torchWhite.castShadow = true;
-      this.torchWhite.shadow.mapSize.width = 1024;
-      this.torchWhite.shadow.mapSize.height = 1024;
-      this.scene.add(this.torchWhite);
+    return moves;
+  }
 
-      // Arcane Violet torch light (Dark Council side)
-      this.torchDark = new THREE.PointLight(0xb042ff, 2.4, 24);
-      this.torchDark.position.set(6, 7, -7);
-      this.torchDark.castShadow = true;
-      this.torchDark.shadow.mapSize.width = 1024;
-      this.torchDark.shadow.mapSize.height = 1024;
-      this.scene.add(this.torchDark);
-
-      // Dungeon floor plane
-      const floorGeo = new THREE.PlaneGeometry(50, 50);
-      const floorMat = new THREE.MeshStandardMaterial({
-        color: 0x0a080e,
-        roughness: 0.85,
-        metalness: 0.15
-      });
-      const floor = new THREE.Mesh(floorGeo, floorMat);
-      floor.rotation.x = -Math.PI / 2;
-      floor.position.y = -1.5;
-      floor.receiveShadow = true;
-      this.scene.add(floor);
-
-      // Distant gothic arches/columns for depth
-      const colGeo = new THREE.CylinderGeometry(0.5, 0.6, 12, 12);
-      const colMat = new THREE.MeshStandardMaterial({ color: 0x140f1a, roughness: 0.9 });
-      for (let i = -14; i <= 14; i += 7) {
-        if (Math.abs(i) < 4) continue;
-        const col1 = new THREE.Mesh(colGeo, colMat);
-        col1.position.set(i, 4, -9);
-        this.scene.add(col1);
-
-        const col2 = new THREE.Mesh(colGeo, colMat);
-        col2.position.set(i, 4, 9);
-        this.scene.add(col2);
+  findKing(color, board = this.board) {
+    const targetKing = color === 'w' ? 'K' : 'k';
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        if (board[r][c] === targetKing) return { r, c };
       }
-
-      // Procedural textures
-      this.stoneTexWhite = createProceduralStoneTexture(false);
-      this.stoneTexDark = createProceduralStoneTexture(true);
-
-      // Materials
-      this.matWhite = new THREE.MeshStandardMaterial({
-        map: this.stoneTexWhite,
-        roughness: 0.45,
-        metalness: 0.1,
-        color: 0xf3ede2
-      });
-
-      this.matDark = new THREE.MeshStandardMaterial({
-        map: this.stoneTexDark,
-        roughness: 0.55,
-        metalness: 0.2,
-        color: 0x221a2c
-      });
-
-      this.matRuneWhite = new THREE.MeshStandardMaterial({
-        color: 0xffd700,
-        emissive: 0xffaa00,
-        emissiveIntensity: 0.6
-      });
-
-      this.matRuneDark = new THREE.MeshStandardMaterial({
-        color: 0xc042ff,
-        emissive: 0x9000ff,
-        emissiveIntensity: 0.8
-      });
     }
+    return null;
+  }
 
-    initBoardMesh() {
-      // Elevated Stone Pedestal
-      const baseGeo = new THREE.BoxGeometry(9.4, 0.7, 9.4);
-      const baseMat = new THREE.MeshStandardMaterial({
-        color: 0x181220,
-        roughness: 0.7,
-        metalness: 0.2
-      });
-      const pedestal = new THREE.Mesh(baseGeo, baseMat);
-      pedestal.position.y = -0.38;
-      pedestal.receiveShadow = true;
-      pedestal.castShadow = true;
-      this.boardGroup.add(pedestal);
+  isCheck(color, board = this.board) {
+    const kingPos = this.findKing(color, board);
+    if (!kingPos) return false;
+    const opponent = color === 'w' ? 'b' : 'w';
 
-      // 8x8 Stone Tiles
-      const tileGeo = new THREE.BoxGeometry(1, 0.2, 1);
-      for (let r = 0; r < 8; r++) {
-        for (let c = 0; c < 8; c++) {
-          const isLight = (r + c) % 2 === 0;
-          const mat = new THREE.MeshStandardMaterial({
-            color: isLight ? 0xbaa992 : 0x2e2538,
-            roughness: isLight ? 0.4 : 0.6,
-            metalness: 0.1
-          });
-          const tile = new THREE.Mesh(tileGeo, mat);
-          tile.position.set(c - 3.5, 0, r - 3.5);
-          tile.receiveShadow = true;
-          tile.userData = { r, c, defaultColor: mat.color.getHex() };
-          this.boardGroup.add(tile);
-          this.tileMeshes.push(tile);
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        if (this.getPieceColor(board[r][c]) === opponent) {
+          const raw = this.getRawMoves(r, c, board);
+          if (raw.some(m => m.to.r === kingPos.r && m.to.c === kingPos.c)) {
+            return true;
+          }
         }
       }
     }
+    return false;
+  }
 
-    /* Dynamic procedural 3D Piece Sculptures */
-    buildPiece3D(type, color) {
-      const grp = new THREE.Group();
-      const isW = color === 'w';
-      const bodyMat = isW ? this.matWhite : this.matDark;
-      const runeMat = isW ? this.matRuneWhite : this.matRuneDark;
+  getLegalMoves(r, c) {
+    const piece = this.board[r][c];
+    if (!piece || this.getPieceColor(piece) !== this.turn) return [];
 
-      // Base plinth common to all
-      const plinth = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.42, 0.14, 16), bodyMat);
-      plinth.position.y = 0.07;
-      plinth.castShadow = true;
-      plinth.receiveShadow = true;
-      grp.add(plinth);
+    const rawMoves = this.getRawMoves(r, c, this.board);
+    const legalMoves = [];
 
-      if (type === 'p') {
-        // Pawn: Stone Footman with Helm & Spiked Collar
-        const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.32, 0.45, 12), bodyMat);
-        torso.position.y = 0.36;
-        torso.castShadow = true;
-        grp.add(torso);
+    rawMoves.forEach(move => {
+      // Simulate move
+      const nextBoard = this.cloneBoard(this.board);
+      nextBoard[move.to.r][move.to.c] = nextBoard[move.from.r][move.from.c];
+      nextBoard[move.from.r][move.from.c] = null;
 
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), bodyMat);
-        head.position.y = 0.65;
-        head.castShadow = true;
-        grp.add(head);
-
-        const spike = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.18, 8), runeMat);
-        spike.position.y = 0.86;
-        grp.add(spike);
-
-      } else if (type === 'r') {
-        // Rook: Castle Battlement Golem
-        const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.38, 0.75, 12), bodyMat);
-        tower.position.y = 0.48;
-        tower.castShadow = true;
-        grp.add(tower);
-
-        const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.34, 0.22, 8), bodyMat);
-        crown.position.y = 0.92;
-        crown.castShadow = true;
-        grp.add(crown);
-
-        const core = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.3, 0.14), runeMat);
-        core.position.y = 0.55;
-        grp.add(core);
-
-      } else if (type === 'n') {
-        // Knight: Armored Warhorse Bust
-        const chest = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.36, 0.5, 12), bodyMat);
-        chest.position.y = 0.38;
-        grp.add(chest);
-
-        const horseNeck = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.45, 0.36), bodyMat);
-        horseNeck.position.set(0, 0.7, 0.08);
-        horseNeck.rotation.x = -0.3;
-        horseNeck.castShadow = true;
-        grp.add(horseNeck);
-
-        const snout = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.35), bodyMat);
-        snout.position.set(0, 0.75, 0.28);
-        grp.add(snout);
-
-        const mane = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.3, 4), runeMat);
-        mane.position.set(0, 0.92, -0.05);
-        grp.add(mane);
-
-      } else if (type === 'b') {
-        // Bishop: Arcane Cleric with Mitre Staff
-        const robes = new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.8, 12), bodyMat);
-        robes.position.y = 0.48;
-        grp.add(robes);
-
-        const mitre = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 10), bodyMat);
-        mitre.scale.set(0.9, 1.4, 0.9);
-        mitre.position.y = 0.95;
-        grp.add(mitre);
-
-        const staffOrb = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), runeMat);
-        staffOrb.position.set(0.24, 0.95, 0.15);
-        grp.add(staffOrb);
-
-      } else if (type === 'q') {
-        // Queen: High Battle Sorceress Crown
-        const dress = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.38, 0.85, 14), bodyMat);
-        dress.position.y = 0.54;
-        grp.add(dress);
-
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), bodyMat);
-        head.position.y = 1.05;
-        grp.add(head);
-
-        const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.12, 0.24, 8), runeMat);
-        crown.position.y = 1.25;
-        grp.add(crown);
-
-      } else if (type === 'k') {
-        // King: Monarch with Merlin Broadsword
-        const robe = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.4, 0.95, 14), bodyMat);
-        robe.position.y = 0.58;
-        grp.add(robe);
-
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 12), bodyMat);
-        head.position.y = 1.15;
-        grp.add(head);
-
-        const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.28, 0.08), runeMat);
-        crossV.position.y = 1.42;
-        grp.add(crossV);
-
-        const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.08, 0.08), runeMat);
-        crossH.position.y = 1.42;
-        grp.add(crossH);
+      // Handle pawn promotion simply to Queen
+      if (piece.toLowerCase() === 'p' && (move.to.r === 0 || move.to.r === 7)) {
+        nextBoard[move.to.r][move.to.c] = this.isPieceWhite(piece) ? 'Q' : 'q';
       }
 
-      grp.traverse(o => {
-        if (o.isMesh) {
-          o.castShadow = true;
-          o.receiveShadow = true;
+      if (!this.isCheck(this.turn, nextBoard)) {
+        legalMoves.push(move);
+      }
+    });
+
+    return legalMoves;
+  }
+
+  getAllLegalMoves(color = this.turn) {
+    const moves = [];
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        if (this.getPieceColor(this.board[r][c]) === color) {
+          // Temporarily set turn to test legal moves
+          const prevTurn = this.turn;
+          this.turn = color;
+          const pieceMoves = this.getLegalMoves(r, c);
+          this.turn = prevTurn;
+          moves.push(...pieceMoves);
         }
-      });
-
-      return grp;
-    }
-
-    setCameraPreset(idx) {
-      this.currentCamIdx = idx % this.camModes.length;
-      const m = this.camModes[this.currentCamIdx];
-      this.camStartPos = this.camera.position.clone();
-      this.camEndPos = m.pos.clone();
-      this.camStartTarget = this.cameraTarget.clone();
-      this.camEndTarget = m.target.clone();
-      this.camLerpProgress = 0;
-      return m.name;
-    }
-
-    triggerKillCam(pos) {
-      // Zoom dynamic camera right into the action tile
-      this.camStartPos = this.camera.position.clone();
-      this.camEndPos = new THREE.Vector3(pos.x + 2.4, 3.2, pos.z + 3.0);
-      this.camStartTarget = this.cameraTarget.clone();
-      this.camEndTarget = new THREE.Vector3(pos.x, 0.5, pos.z);
-      this.camLerpProgress = 0;
-
-      // Screen flash
-      const flash = document.getElementById('fx-flash');
-      flash.classList.add('active');
-      setTimeout(() => flash.classList.remove('active'), 120);
-
-      // Return to normal angle after combat execution
-      setTimeout(() => {
-        this.setCameraPreset(this.currentCamIdx);
-      }, 1200);
-    }
-
-    /* 3D Exploding Stone Shard Physics */
-    spawnShatterPieces(pos, color) {
-      const count = 38;
-      const isW = color === 'w';
-      const mat = isW ? this.matWhite : this.matDark;
-      const runeMat = isW ? this.matRuneWhite : this.matRuneDark;
-
-      for (let i = 0; i < count; i++) {
-        const size = 0.08 + Math.random() * 0.16;
-        const geo = Math.random() > 0.3 ? new THREE.BoxGeometry(size, size, size) : new THREE.TetrahedronGeometry(size);
-        const mesh = new THREE.Mesh(geo, Math.random() > 0.25 ? mat : runeMat);
-
-        mesh.position.set(
-          pos.x + (Math.random() - 0.5) * 0.5,
-          pos.y + 0.3 + Math.random() * 0.6,
-          pos.z + (Math.random() - 0.5) * 0.5
-        );
-
-        const angle = Math.random() * Math.PI * 2;
-        const spd = 2.2 + Math.random() * 4.5;
-        mesh.userData = {
-          vx: Math.cos(angle) * spd,
-          vy: 3.5 + Math.random() * 5.0,
-          vz: Math.sin(angle) * spd,
-          vRotX: (Math.random() - 0.5) * 12,
-          vRotZ: (Math.random() - 0.5) * 12,
-          life: 1.0
-        };
-
-        mesh.castShadow = true;
-        this.scene.add(mesh);
-        this.shards.push(mesh);
       }
     }
+    return moves;
+  }
 
-    onResize() {
+  makeMove(move) {
+    const piece = this.board[move.from.r][move.from.c];
+    const captured = this.board[move.to.r][move.to.c];
+
+    this.history.push({
+      board: this.cloneBoard(this.board),
+      move,
+      turn: this.turn
+    });
+
+    this.board[move.to.r][move.to.c] = piece;
+    this.board[move.from.r][move.from.c] = null;
+
+    // Pawn Promotion
+    let promoted = false;
+    if (piece.toLowerCase() === 'p' && (move.to.r === 0 || move.to.r === 7)) {
+      this.board[move.to.r][move.to.c] = this.isPieceWhite(piece) ? 'Q' : 'q';
+      promoted = true;
+    }
+
+    this.turn = this.turn === 'w' ? 'b' : 'w';
+
+    const inCheck = this.isCheck(this.turn);
+    const hasMoves = this.getAllLegalMoves(this.turn).length > 0;
+    const isCheckmate = inCheck && !hasMoves;
+    const isStalemate = !inCheck && !hasMoves;
+
+    return {
+      captured,
+      promoted,
+      inCheck,
+      isCheckmate,
+      isStalemate
+    };
+  }
+
+  undo() {
+    if (this.history.length === 0) return null;
+    const last = this.history.pop();
+    this.board = last.board;
+    this.turn = last.turn;
+    return last;
+  }
+}
+
+// ==========================================
+// 4. CHESS AI: THE SPECTRAL ARCHMAGE
+// ==========================================
+class WizardAI {
+  constructor(engine) {
+    this.engine = engine;
+    this.pieceValues = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
+  }
+
+  evaluateBoard(board) {
+    let score = 0;
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const piece = board[r][c];
+        if (!piece) continue;
+        const val = this.pieceValues[piece.toLowerCase()] || 0;
+        // Positional bonus: encourage center control
+        const centerBonus = (3.5 - Math.abs(3.5 - r)) + (3.5 - Math.abs(3.5 - c));
+        const total = val + centerBonus * 4;
+        score += piece === piece.toUpperCase() ? -total : total; // Black maximizes score
+      }
+    }
+    return score;
+  }
+
+  minimax(board, depth, alpha, beta, isMaximizing) {
+    if (depth === 0) {
+      return { score: this.evaluateBoard(board) };
+    }
+
+    const currentTurn = isMaximizing ? 'b' : 'w';
+    this.engine.turn = currentTurn;
+    const legalMoves = this.engine.getAllLegalMoves(currentTurn);
+
+    if (legalMoves.length === 0) {
+      if (this.engine.isCheck(currentTurn, board)) {
+        return { score: isMaximizing ? -99999 + (3 - depth) : 99999 - (3 - depth) };
+      }
+      return { score: 0 }; // Stalemate
+    }
+
+    let bestMove = legalMoves[0];
+
+    if (isMaximizing) {
+      let maxEval = -Infinity;
+      for (const move of legalMoves) {
+        const nextBoard = this.engine.cloneBoard(board);
+        nextBoard[move.to.r][move.to.c] = nextBoard[move.from.r][move.from.c];
+        nextBoard[move.from.r][move.from.c] = null;
+
+        const evalResult = this.minimax(nextBoard, depth - 1, alpha, beta, false);
+        if (evalResult.score > maxEval) {
+          maxEval = evalResult.score;
+          bestMove = move;
+        }
+        alpha = Math.max(alpha, evalResult.score);
+        if (beta <= alpha) break;
+      }
+      return { score: maxEval, move: bestMove };
+    } else {
+      let minEval = Infinity;
+      for (const move of legalMoves) {
+        const nextBoard = this.engine.cloneBoard(board);
+        nextBoard[move.to.r][move.to.c] = nextBoard[move.from.r][move.from.c];
+        nextBoard[move.from.r][move.from.c] = null;
+
+        const evalResult = this.minimax(nextBoard, depth - 1, alpha, beta, true);
+        if (evalResult.score < minEval) {
+          minEval = evalResult.score;
+          bestMove = move;
+        }
+        beta = Math.min(beta, evalResult.score);
+        if (beta <= alpha) break;
+      }
+      return { score: minEval, move: bestMove };
+    }
+  }
+
+  getBestMove(depth = 2) {
+    const origTurn = this.engine.turn;
+    const result = this.minimax(this.engine.board, depth, -Infinity, Infinity, true);
+    this.engine.turn = origTurn;
+    return result.move;
+  }
+}
+
+// ==========================================
+// 5. MASTER 3D SCENE & INTERACTION CONTROLLER
+// ==========================================
+class WizardChessApp {
+  constructor() {
+    this.container = document.getElementById('webgl-container');
+    this.engine = new ChessEngine();
+    this.ai = new WizardAI(this.engine);
+    this.builder = new PieceMeshBuilder();
+
+    this.pieceMeshes = {}; // keyed by "r,c"
+    this.squareHighlights = [];
+    this.floatingCandles = [];
+    this.dustParticles = null;
+    this.debrisParticles = [];
+
+    this.selectedSquare = null;
+    this.legalMovesForSelected = [];
+    this.isAnimatingCombat = false;
+
+    this.initThree();
+    this.buildAtmosphere();
+    this.buildChessboard();
+    this.syncBoardToMeshes();
+    this.bindEvents();
+    this.animate();
+  }
+
+  initThree() {
+    this.scene = new THREE.Scene();
+    this.scene.fog = new THREE.FogExp2(0x0a0710, 0.045);
+
+    this.camera = new THREE.PerspectiveCamera(
+      45,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    this.camera.position.set(0, 8.5, 9.5);
+
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.container.appendChild(this.renderer.domElement);
+
+    this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.05;
+    this.controls.maxPolarAngle = Math.PI / 2 - 0.05; // Do not go below floor
+    this.controls.minDistance = 4;
+    this.controls.maxDistance = 22;
+    this.controls.target.set(0, 0.3, 0);
+
+    this.raycaster = new THREE.Raycaster();
+    this.mouse = new THREE.Vector2();
+
+    // Resize
+    window.addEventListener('resize', () => {
       this.camera.aspect = window.innerWidth / window.innerHeight;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  }
+
+  buildAtmosphere() {
+    // Ambient room illumination
+    const ambientLight = new THREE.AmbientLight(0x2d1f3d, 1.2);
+    this.scene.add(ambientLight);
+
+    // Moonlight shaft through vaulted gothic windows
+    const moonDirLight = new THREE.DirectionalLight(0xa6c8ff, 1.5);
+    moonDirLight.position.set(-6, 14, 8);
+    moonDirLight.castShadow = true;
+    moonDirLight.shadow.mapSize.width = 2048;
+    moonDirLight.shadow.mapSize.height = 2048;
+    moonDirLight.shadow.camera.near = 0.5;
+    moonDirLight.shadow.camera.far = 30;
+    moonDirLight.shadow.camera.left = -6;
+    moonDirLight.shadow.camera.right = 6;
+    moonDirLight.shadow.camera.top = 6;
+    moonDirLight.shadow.camera.bottom = -6;
+    moonDirLight.shadow.bias = -0.0005;
+    this.scene.add(moonDirLight);
+
+    // Warm board center glow
+    const centerBrazier = new THREE.PointLight(0xffa834, 1.2, 12, 1.8);
+    centerBrazier.position.set(0, 3.5, 0);
+    this.scene.add(centerBrazier);
+
+    // Suspended Floating Candles with flickering point lights
+    const candleGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.45, 8);
+    const candleMat = new THREE.MeshStandardMaterial({ color: 0xfff6d6, roughness: 0.3 });
+    const flameGeo = new THREE.SphereGeometry(0.04, 6, 6);
+    const flameMat = new THREE.MeshBasicMaterial({ color: 0xffaa22 });
+
+    for (let i = 0; i < 36; i++) {
+      const candleGroup = new THREE.Group();
+      const candleMesh = new THREE.Mesh(candleGeo, candleMat);
+      const flameMesh = new THREE.Mesh(flameGeo, flameMat);
+      flameMesh.position.y = 0.25;
+      candleGroup.add(candleMesh);
+      candleGroup.add(flameMesh);
+
+      // Distribute in a ring-vault pattern
+      const angle = (i / 36) * Math.PI * 2;
+      const radius = 4.2 + (i % 3) * 1.5;
+      const x = Math.cos(angle) * radius + (Math.random() - 0.5) * 0.8;
+      const z = Math.sin(angle) * radius + (Math.random() - 0.5) * 0.8;
+      const y = 3.2 + Math.sin(i) * 1.5;
+
+      candleGroup.position.set(x, y, z);
+
+      if (i % 6 === 0) {
+        const candleLight = new THREE.PointLight(0xff9922, 0.6, 5);
+        candleLight.position.y = 0.3;
+        candleGroup.add(candleLight);
+      }
+
+      this.scene.add(candleGroup);
+      this.floatingCandles.push({
+        group: candleGroup,
+        baseY: y,
+        speed: 1.0 + Math.random() * 1.2,
+        phase: Math.random() * Math.PI * 2
+      });
     }
 
-    update(dt) {
-      // Torch flickers
-      const t = performance.now() * 0.003;
-      this.torchWhite.intensity = 2.0 + Math.sin(t * 2.5) * 0.35;
-      this.torchDark.intensity = 2.2 + Math.cos(t * 2.1) * 0.35;
+    // Drifting magical dust motes
+    const dustCount = 220;
+    const dustGeo = new THREE.BufferGeometry();
+    const positions = new Float32Array(dustCount * 3);
+    for (let i = 0; i < dustCount * 3; i += 3) {
+      positions[i] = (Math.random() - 0.5) * 18;
+      positions[i + 1] = Math.random() * 8 + 0.2;
+      positions[i + 2] = (Math.random() - 0.5) * 18;
+    }
+    dustGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const dustMat = new THREE.PointsMaterial({
+      color: 0xeedfb8,
+      size: 0.055,
+      transparent: true,
+      opacity: 0.6
+    });
+    this.dustParticles = new THREE.Points(dustGeo, dustMat);
+    this.scene.add(this.dustParticles);
+  }
 
-      // Camera lerp
-      if (this.camEndPos && this.camLerpProgress < 1.0) {
-        this.camLerpProgress += dt * 2.8;
-        const factor = Math.min(1.0, this.camLerpProgress);
-        // Smooth step
-        const s = factor * factor * (3 - 2 * factor);
-        this.camera.position.lerpVectors(this.camStartPos, this.camEndPos, s);
-        this.cameraTarget.lerpVectors(this.camStartTarget, this.camEndTarget, s);
-        this.camera.lookAt(this.cameraTarget);
+  buildChessboard() {
+    const boardGroup = new THREE.Group();
+
+    // Checkered Board Base
+    const squareSize = 1.0;
+    this.boardSquareMeshes = [];
+
+    const lightSquareMat = new THREE.MeshStandardMaterial({
+      color: 0xd9ceb2,
+      roughness: 0.3,
+      metalness: 0.1
+    });
+
+    const darkSquareMat = new THREE.MeshStandardMaterial({
+      color: 0x1f192b,
+      roughness: 0.4,
+      metalness: 0.2
+    });
+
+    const squareGeo = new THREE.BoxGeometry(squareSize, 0.3, squareSize);
+
+    for (let r = 0; r < 8; r++) {
+      this.boardSquareMeshes[r] = [];
+      for (let c = 0; c < 8; c++) {
+        const isDark = (r + c) % 2 === 1;
+        const mat = isDark ? darkSquareMat : lightSquareMat;
+        const tile = new THREE.Mesh(squareGeo, mat);
+        // Center the 8x8 grid around (0, 0, 0)
+        const x = (c - 3.5) * squareSize;
+        const z = (r - 3.5) * squareSize;
+        tile.position.set(x, 0.15, z);
+        tile.receiveShadow = true;
+        tile.userData = { r, c };
+        boardGroup.add(tile);
+        this.boardSquareMeshes[r][c] = tile;
       }
+    }
 
-      // Shard physics
-      for (let i = this.shards.length - 1; i >= 0; i--) {
-        const s = this.shards[i];
-        const u = s.userData;
-        u.vy -= 16 * dt; // gravity
-        s.position.x += u.vx * dt;
-        s.position.y += u.vy * dt;
-        s.position.z += u.vz * dt;
-        s.rotation.x += u.vRotX * dt;
-        s.rotation.z += u.vRotZ * dt;
+    // Carved Stone Outer Frame with Gilded Filigree
+    const frameMat = new THREE.MeshStandardMaterial({
+      color: 0x0f0b17,
+      roughness: 0.5,
+      metalness: 0.3
+    });
+    const outerFrameGeo = new THREE.BoxGeometry(9.2, 0.26, 9.2);
+    const outerFrame = new THREE.Mesh(outerFrameGeo, frameMat);
+    outerFrame.position.y = 0.1;
+    outerFrame.receiveShadow = true;
+    boardGroup.add(outerFrame);
 
-        // Ground collision bounce
-        if (s.position.y < 0.05) {
-          s.position.y = 0.05;
-          u.vy *= -0.35;
-          u.vx *= 0.6;
-          u.vz *= 0.6;
-        }
+    // Glowing Leyline Perimeter
+    const rimMat = new THREE.MeshStandardMaterial({
+      color: 0xd4af37,
+      emissive: 0x99782d,
+      emissiveIntensity: 0.4,
+      metalness: 0.8,
+      roughness: 0.2
+    });
+    const rimGeo = new THREE.BoxGeometry(8.25, 0.32, 8.25);
+    const rimMesh = new THREE.Mesh(rimGeo, rimMat);
+    rimMesh.position.y = 0.12;
+    boardGroup.add(rimMesh);
 
-        u.life -= dt * 0.85;
-        s.scale.setScalar(Math.max(0.001, u.life));
+    this.scene.add(boardGroup);
+  }
 
-        if (u.life <= 0) {
-          this.scene.remove(s);
-          this.shards.splice(i, 1);
+  // Convert row, col to Three.js world space coordinates
+  gridToWorld(r, c) {
+    return new THREE.Vector3((c - 3.5) * 1.0, 0.3, (r - 3.5) * 1.0);
+  }
+
+  syncBoardToMeshes() {
+    // Clear existing piece meshes
+    Object.values(this.pieceMeshes).forEach(mesh => this.scene.remove(mesh));
+    this.pieceMeshes = {};
+
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const piece = this.engine.board[r][c];
+        if (piece) {
+          const color = this.engine.isPieceWhite(piece) ? 'w' : 'b';
+          const mesh = this.builder.buildPiece(piece, color);
+          const worldPos = this.gridToWorld(r, c);
+          mesh.position.copy(worldPos);
+
+          // Face the opponent
+          if (color === 'w') {
+            mesh.rotation.y = 0;
+          } else {
+            mesh.rotation.y = Math.PI;
+          }
+
+          mesh.userData.grid = { r, c };
+          this.scene.add(mesh);
+          this.pieceMeshes[`${r},${c}`] = mesh;
         }
       }
-
-      // Living piece subtle breathing
-      const breathe = Math.sin(performance.now() * 0.003) * 0.02;
-      for (const key in this.pieceMeshes) {
-        const m = this.pieceMeshes[key];
-        if (m && !m.userData.isAnimating) {
-          m.position.y = breathe;
-        }
-      }
-
-      this.renderer.render(this.scene, this.camera);
     }
   }
 
-  /* ==========================================================================
-     6. GAME CONTROLLER & 4TH-WALL INTERACTIONS
-     ========================================================================== */
-  class WizardGameApp {
-    constructor() {
-      this.engine = new ChessEngine();
-      this.container = document.getElementById('webgl-container');
-      this.sceneMgr = new WizardScene(this.container);
+  // Visual Rune Rings for Move Targets
+  showLegalMoveHighlights(moves) {
+    this.clearHighlights();
+    const ringGeo = new THREE.RingGeometry(0.18, 0.38, 20);
+    ringGeo.rotateX(-Math.PI / 2);
 
-      this.raycaster = new THREE.Raycaster();
-      this.mouse = new THREE.Vector2();
+    moves.forEach(m => {
+      const isCapture = !!this.engine.board[m.to.r][m.to.c];
+      const mat = new THREE.MeshBasicMaterial({
+        color: isCapture ? 0xff3366 : 0x4fc3f7,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.8
+      });
+      const highlightMesh = new THREE.Mesh(ringGeo, mat);
+      const pos = this.gridToWorld(m.to.r, m.to.c);
+      highlightMesh.position.set(pos.x, 0.315, pos.z);
+      this.scene.add(highlightMesh);
+      this.squareHighlights.push(highlightMesh);
 
-      this.isAiActive = true;
-      this.isAiCalculating = false;
+      // GSAP Pulsing Ring
+      gsap.to(highlightMesh.scale, {
+        x: 1.15,
+        z: 1.15,
+        duration: 0.6,
+        repeat: -1,
+        yoyo: true,
+        ease: "power1.inOut"
+      });
+    });
+  }
 
-      // Dialogue DOM
-      this.diagBanner = document.getElementById('dialogue-banner');
-      this.diagName = document.getElementById('diag-name');
-      this.diagSigil = document.getElementById('diag-sigil');
-      this.diagText = document.getElementById('diag-text');
+  clearHighlights() {
+    this.squareHighlights.forEach(h => this.scene.remove(h));
+    this.squareHighlights = [];
+  }
 
-      // Status
-      this.turnOrb = document.getElementById('turn-orb');
-      this.turnText = document.getElementById('turn-text');
+  // ==========================================
+  // 6. KINETIC COMBAT ANIMATION & SHATTER VFX
+  // ==========================================
+  triggerShatterExplosion(position, color) {
+    soundEngine.playShatterExplosion();
 
-      // Modal
-      this.modal = document.getElementById('game-modal');
-      this.modalHeading = document.getElementById('modal-heading');
-      this.modalMsg = document.getElementById('modal-message');
-
-      this.sync3DPieces();
-      this.initInput();
-      this.initButtons();
-      this.startLoop();
-
-      this.speak("Albus the Arbiter", "⚡", "Touch a stone warrior to commune with it. They will obey your wizarding command.");
-    }
-
-    startLoop() {
-      let lastTime = performance.now();
-      const frame = (now) => {
-        const dt = Math.min((now - lastTime) / 1000, 0.1);
-        lastTime = now;
-        this.sceneMgr.update(dt);
-        requestAnimationFrame(frame);
-      };
-      requestAnimationFrame(frame);
-    }
-
-    speak(name, sigil, text) {
-      this.diagName.textContent = name;
-      this.diagSigil.textContent = sigil;
-      this.diagText.textContent = `"${text}"`;
-      this.diagBanner.style.transform = "scale(1.03)";
-      setTimeout(() => (this.diagBanner.style.transform = "scale(1)"), 180);
-      sounds.playChime();
-    }
-
-    sync3DPieces() {
-      // Clear current piece models
-      for (const k in this.sceneMgr.pieceMeshes) {
-        this.sceneMgr.piecesGroup.remove(this.sceneMgr.pieceMeshes[k]);
+    // Camera shake effect
+    const origCamPos = this.camera.position.clone();
+    gsap.to(this.camera.position, {
+      x: origCamPos.x + (Math.random() - 0.5) * 0.4,
+      y: origCamPos.y + (Math.random() - 0.5) * 0.4,
+      duration: 0.05,
+      repeat: 5,
+      yoyo: true,
+      onComplete: () => {
+        this.camera.position.copy(origCamPos);
       }
-      this.sceneMgr.pieceMeshes = {};
+    });
 
-      for (let r = 0; r < 8; r++) {
-        for (let c = 0; c < 8; c++) {
-          const p = this.engine.board[r][c];
-          if (p) {
-            const mesh = this.sceneMgr.buildPiece3D(p.type, p.color);
-            mesh.position.set(c - 3.5, 0, r - 3.5);
-            mesh.userData = { r, c, type: p.type, color: p.color };
-            this.sceneMgr.piecesGroup.add(mesh);
-            this.sceneMgr.pieceMeshes[`${r}_${c}`] = mesh;
-          }
-        }
-      }
-      this.highlightTiles();
+    // Flash screen effect
+    const flashEl = document.getElementById('flash-overlay');
+    flashEl.style.opacity = '0.5';
+    gsap.to(flashEl, { opacity: 0, duration: 0.35 });
+
+    // Spawn physics-simulated debris stone fragments
+    const fragMat = color === 'w' ? this.builder.whiteMaterial : this.builder.blackMaterial;
+    const shardCount = 20;
+
+    for (let i = 0; i < shardCount; i++) {
+      const geo = new THREE.DodecahedronGeometry(0.06 + Math.random() * 0.08);
+      const shard = new THREE.Mesh(geo, fragMat);
+      shard.position.copy(position);
+      shard.position.y += 0.2;
+      this.scene.add(shard);
+
+      const velocity = new THREE.Vector3(
+        (Math.random() - 0.5) * 3.5,
+        Math.random() * 4.0 + 1.5,
+        (Math.random() - 0.5) * 3.5
+      );
+
+      this.debrisParticles.push({
+        mesh: shard,
+        velocity,
+        gravity: -9.8,
+        life: 1.2
+      });
     }
+  }
 
-    highlightTiles() {
-      // Reset tile colors
-      this.sceneMgr.tileMeshes.forEach(t => {
-        t.material.color.setHex(t.userData.defaultColor);
+  executeMoveWithAnimation(move, onComplete) {
+    this.isAnimatingCombat = true;
+    const attackerMesh = this.pieceMeshes[`${move.from.r},${move.from.c}`];
+    const defenderMesh = this.pieceMeshes[`${move.to.r},${move.to.c}`];
+    const targetPos = this.gridToWorld(move.to.r, move.to.c);
+
+    // Look at target
+    attackerMesh.lookAt(targetPos.x, attackerMesh.position.y, targetPos.z);
+
+    const isCombat = !!defenderMesh;
+
+    if (isCombat) {
+      // Dynamic Duel Combat Choreography
+      soundEngine.playSpellCast();
+      this.logChronicle(
+        `${attackerMesh.userData.color === 'w' ? 'Lumos' : 'Nox'} ${attackerMesh.userData.type.toUpperCase()} casts Stupefy on ${defenderMesh.userData.type.toUpperCase()}!`,
+        'spell-cast'
+      );
+
+      const timeline = gsap.timeline();
+
+      // 1. Attacker windup / hover
+      timeline.to(attackerMesh.position, {
+        y: 0.9,
+        duration: 0.3,
+        ease: "power2.out"
       });
 
-      const sel = this.engine.selected;
-      if (sel) {
-        const selTile = this.sceneMgr.tileMeshes.find(t => t.userData.r === sel.r && t.userData.c === sel.c);
-        if (selTile) selTile.material.color.setHex(0xffaa00);
+      // 2. Spell projectile energy beam
+      timeline.add(() => {
+        const spellBolt = new THREE.Mesh(
+          new THREE.SphereGeometry(0.12, 8, 8),
+          new THREE.MeshBasicMaterial({ color: attackerMesh.userData.color === 'w' ? 0x80d8ff : 0xff1744 })
+        );
+        spellBolt.position.copy(attackerMesh.position);
+        this.scene.add(spellBolt);
 
-        this.engine.validMoves.forEach(mv => {
-          const t = this.sceneMgr.tileMeshes.find(tm => tm.userData.r === mv.r && tm.userData.c === mv.c);
-          if (t) {
-            t.material.color.setHex(mv.capture ? 0xff2244 : 0x3df0d2);
+        gsap.to(spellBolt.position, {
+          x: targetPos.x,
+          y: targetPos.y + 0.5,
+          z: targetPos.z,
+          duration: 0.22,
+          ease: "power1.in",
+          onComplete: () => {
+            this.scene.remove(spellBolt);
+            // Shatter defender
+            this.triggerShatterExplosion(targetPos, defenderMesh.userData.color);
+            this.scene.remove(defenderMesh);
           }
         });
-      }
-
-      // Check Indicator on King
-      if (this.engine.isKingInCheck(this.engine.turn)) {
-        for (let r = 0; r < 8; r++) {
-          for (let c = 0; c < 8; c++) {
-            const p = this.engine.board[r][c];
-            if (p && p.type === 'k' && p.color === this.engine.turn) {
-              const kt = this.sceneMgr.tileMeshes.find(tm => tm.userData.r === r && tm.userData.c === c);
-              if (kt) kt.material.color.setHex(0xff0033);
-            }
-          }
-        }
-      }
-    }
-
-    initInput() {
-      const onPointerDown = (e) => {
-        if (this.engine.isGameOver || (this.isAiCalculating && this.engine.turn === 'b')) return;
-
-        const x = e.clientX || (e.touches && e.touches[0].clientX);
-        const y = e.clientY || (e.touches && e.touches[0].clientY);
-        if (x === undefined || y === undefined) return;
-
-        this.mouse.x = (x / window.innerWidth) * 2 - 1;
-        this.mouse.y = -(y / window.innerHeight) * 2 + 1;
-
-        this.raycaster.setFromCamera(this.mouse, this.sceneMgr.camera);
-
-        // Check intersection with pieces first
-        const pieceIntersects = this.raycaster.intersectObjects(this.sceneMgr.piecesGroup.children, true);
-        if (pieceIntersects.length > 0) {
-          // Find root piece group
-          let root = pieceIntersects[0].object;
-          while (root.parent && root.parent !== this.sceneMgr.piecesGroup) {
-            root = root.parent;
-          }
-          if (root && root.userData.r !== undefined) {
-            this.handlePieceTap(root.userData.r, root.userData.c);
-            return;
-          }
-        }
-
-        // Check intersection with tiles
-        const tileIntersects = this.raycaster.intersectObjects(this.sceneMgr.tileMeshes);
-        if (tileIntersects.length > 0) {
-          const t = tileIntersects[0].object;
-          this.handleTileTap(t.userData.r, t.userData.c);
-        }
-      };
-
-      this.container.addEventListener('pointerdown', onPointerDown);
-    }
-
-    handlePieceTap(r, c) {
-      const piece = this.engine.board[r][c];
-      if (!piece) return;
-
-      if (piece.color === this.engine.turn) {
-        if (this.engine.selected && this.engine.selected.r === r && this.engine.selected.c === c) {
-          // 4th wall break on repeated tap
-          const q = QUOTES[piece.type];
-          const text = q.taps[Math.floor(Math.random() * q.taps.length)];
-          this.speak(q.name, q.avatar, text);
-          return;
-        }
-
-        this.engine.selected = { r, c };
-        this.engine.validMoves = this.engine.getLegalMoves(r, c);
-        sounds.playGlide();
-        this.highlightTiles();
-
-        // Lift piece slightly
-        const mesh = this.sceneMgr.pieceMeshes[`${r}_${c}`];
-        if (mesh) {
-          mesh.position.y = 0.3;
-          setTimeout(() => { if (mesh) mesh.position.y = 0; }, 200);
-        }
-      } else if (this.engine.selected) {
-        // Attack target tap
-        this.handleTileTap(r, c);
-      }
-    }
-
-    handleTileTap(r, c) {
-      if (!this.engine.selected) return;
-
-      const mv = this.engine.validMoves.find(m => m.r === r && m.c === c);
-      if (mv) {
-        this.executeMove(this.engine.selected, mv);
-      } else {
-        this.engine.selected = null;
-        this.engine.validMoves = [];
-        this.highlightTiles();
-      }
-    }
-
-    executeMove(from, to) {
-      const attackerMesh = this.sceneMgr.pieceMeshes[`${from.r}_${from.c}`];
-      const victimMesh = this.sceneMgr.pieceMeshes[`${to.r}_${to.c}`];
-      const movingPiece = this.engine.board[from.r][from.c];
-      const victimPiece = this.engine.board[to.r][to.c];
-
-      this.engine.selected = null;
-      this.engine.validMoves = [];
-      this.highlightTiles();
-
-      if (victimPiece) {
-        // Cinematic kill-cam zoom!
-        const targetWorldPos = new THREE.Vector3(to.c - 3.5, 0, to.r - 3.5);
-        this.sceneMgr.triggerKillCam(targetWorldPos);
-
-        // Smash victim into real 3D flying stone rubble!
-        sounds.playShatter();
-        this.sceneMgr.spawnShatterPieces(targetWorldPos, victimPiece.color);
-
-        // Slain dialogue
-        const vQuotes = QUOTES[victimPiece.type];
-        const vText = vQuotes.dies[Math.floor(Math.random() * vQuotes.dies.length)];
-        this.speak(vQuotes.name, vQuotes.avatar, vText);
-
-        if (victimMesh) {
-          this.sceneMgr.piecesGroup.remove(victimMesh);
-          delete this.sceneMgr.pieceMeshes[`${to.r}_${to.c}`];
-        }
-      } else {
-        sounds.playGlide();
-        const aQuotes = QUOTES[movingPiece.type];
-        const aText = aQuotes.moves[Math.floor(Math.random() * aQuotes.moves.length)];
-        this.speak(aQuotes.name, aQuotes.avatar, aText);
-      }
-
-      // Smooth slide attacker to target
-      if (attackerMesh) {
-        attackerMesh.userData.isAnimating = true;
-        const startPos = attackerMesh.position.clone();
-        const endPos = new THREE.Vector3(to.c - 3.5, 0, to.r - 3.5);
-        let progress = 0;
-
-        const anim = () => {
-          progress += 0.08;
-          attackerMesh.position.lerpVectors(startPos, endPos, progress);
-          attackerMesh.position.y = Math.sin(progress * Math.PI) * 0.4;
-          if (progress < 1.0) {
-            requestAnimationFrame(anim);
-          } else {
-            attackerMesh.position.copy(endPos);
-            attackerMesh.userData.isAnimating = false;
-            delete this.sceneMgr.pieceMeshes[`${from.r}_${from.c}`];
-            this.sceneMgr.pieceMeshes[`${to.r}_${to.c}`] = attackerMesh;
-            attackerMesh.userData.r = to.r;
-            attackerMesh.userData.c = to.c;
-
-            const res = this.engine.applyMove(from, to);
-            this.updateTurnUI(res);
-          }
-        };
-        requestAnimationFrame(anim);
-      } else {
-        const res = this.engine.applyMove(from, to);
-        this.sync3DPieces();
-        this.updateTurnUI(res);
-      }
-    }
-
-    updateTurnUI(res) {
-      const isWhite = this.engine.turn === 'w';
-      this.turnOrb.className = `orb ${isWhite ? 'white' : 'black'}`;
-      this.turnText.textContent = res.inCheck
-        ? `${isWhite ? 'White' : 'Dark'} King is in CHECK!`
-        : `${isWhite ? 'White Order' : 'Dark Council'}'s Command`;
-
-      this.highlightTiles();
-
-      if (res.isCheckmate) {
-        const victor = this.engine.turn === 'w' ? 'Dark Council' : 'White Order';
-        this.modalHeading.textContent = "CHECKMATE!";
-        this.modalMsg.textContent = `The stone army fell. Supreme victory belongs to the ${victor}!`;
-        this.modal.classList.remove('hidden');
-        return;
-      }
-
-      if (res.isStalemate) {
-        this.modalHeading.textContent = "STALEMATE!";
-        this.modalMsg.textContent = "All spells locked. The duel ends in an arcane draw.";
-        this.modal.classList.remove('hidden');
-        return;
-      }
-
-      // Dark Wizard AI turn
-      if (this.isAiActive && this.engine.turn === 'b' && !this.engine.isGameOver) {
-        this.runAiTurn();
-      }
-    }
-
-    runAiTurn() {
-      this.isAiCalculating = true;
-      this.turnText.textContent = "Dark Wizard is chanting...";
-
-      setTimeout(() => {
-        const moves = this.engine.getAllLegalMoves('b');
-        if (moves.length === 0) {
-          this.isAiCalculating = false;
-          return;
-        }
-
-        // Heuristic AI: prioritizes captures & king danger
-        let bestMove = moves[0];
-        let bestScore = -999999;
-
-        for (const mv of moves) {
-          const testB = this.engine.clone(this.engine.board);
-          testB[mv.to.r][mv.to.c] = testB[mv.from.r][mv.from.c];
-          testB[mv.from.r][mv.from.c] = null;
-          let score = this.engine.evalBoard(testB);
-          if (mv.to.capture) score += 60;
-          if (score > bestScore) {
-            bestScore = score;
-            bestMove = mv;
-          }
-        }
-
-        this.isAiCalculating = false;
-        this.executeMove(bestMove.from, bestMove.to);
-      }, 700 + Math.random() * 500);
-    }
-
-    initButtons() {
-      // Camera angle switch
-      const btnCam = document.getElementById('btn-camera');
-      const lblCam = document.getElementById('cam-label');
-      btnCam.addEventListener('click', () => {
-        const name = this.sceneMgr.setCameraPreset(this.sceneMgr.currentCamIdx + 1);
-        lblCam.textContent = name;
-        sounds.playGlide();
       });
 
-      // AI toggle
-      const btnAi = document.getElementById('btn-ai');
-      const lblAi = document.getElementById('ai-label');
-      btnAi.addEventListener('click', () => {
-        this.isAiActive = !this.isAiActive;
-        lblAi.textContent = this.isAiActive ? "AI: Dark Lord" : "Mode: 2 Player";
-        this.speak("Grand Arbiter", "🧙‍♂️", this.isAiActive ? "The Dark Wizard AI awakens." : "Pass & Play duel activated.");
+      // 3. Attacker strides to claim square
+      timeline.to(attackerMesh.position, {
+        x: targetPos.x,
+        y: targetPos.y,
+        z: targetPos.z,
+        duration: 0.5,
+        delay: 0.25,
+        ease: "power3.inOut",
+        onComplete: () => {
+          this.finalizeMoveState(move, onComplete);
+        }
       });
-
-      // Taunt button
-      const btnTaunt = document.getElementById('btn-taunt');
-      btnTaunt.addEventListener('click', () => {
-        const item = RANDOM_LORE[Math.floor(Math.random() * RANDOM_LORE.length)];
-        this.speak(item.name, item.avatar, item.text);
+    } else {
+      // Standard Slide Movement
+      soundEngine.playStoneMove();
+      gsap.to(attackerMesh.position, {
+        x: targetPos.x,
+        y: targetPos.y,
+        z: targetPos.z,
+        duration: 0.45,
+        ease: "power2.inOut",
+        onComplete: () => {
+          this.finalizeMoveState(move, onComplete);
+        }
       });
-
-      // Reset
-      document.getElementById('btn-reset').addEventListener('click', () => this.restartGame());
-      document.getElementById('modal-restart-btn').addEventListener('click', () => {
-        this.modal.classList.add('hidden');
-        this.restartGame();
-      });
-
-      // Audio toggle
-      const btnAudio = document.getElementById('btn-audio');
-      const iconAudio = document.getElementById('audio-icon');
-      btnAudio.addEventListener('click', () => {
-        sounds.isMuted = !sounds.isMuted;
-        iconAudio.textContent = sounds.isMuted ? '🔇' : '🔊';
-        if (!sounds.isMuted) sounds.playChime();
-      });
-    }
-
-    restartGame() {
-      this.engine.reset();
-      this.modal.classList.add('hidden');
-      this.sync3DPieces();
-      this.updateTurnUI({ inCheck: false });
-      this.speak("Merlin's Herald", "⚡", "The pieces reform from ancient dust! Command your vanguard!");
     }
   }
 
-  // Ignite 3D Arena on Load
-  window.addEventListener('DOMContentLoaded', () => {
-    new WizardGameApp();
-  });
-})();
+  finalizeMoveState(move, onComplete) {
+    const result = this.engine.makeMove(move);
+
+    // Update meshes lookup table
+    const movingPiece = this.pieceMeshes[`${move.from.r},${move.from.c}`];
+    delete this.pieceMeshes[`${move.from.r},${move.from.c}`];
+    this.pieceMeshes[`${move.to.r},${move.to.c}`] = movingPiece;
+    movingPiece.userData.grid = { r: move.to.r, c: move.to.c };
+
+    // Handle Captured piece display
+    if (result.captured) {
+      this.addGravePiece(result.captured);
+      this.logChronicle(
+        `Piece shattered into dust! The square is claimed.`,
+        'spell-shatter'
+      );
+    }
+
+    // Pawn Promotion replacement
+    if (result.promoted) {
+      this.scene.remove(movingPiece);
+      const color = movingPiece.userData.color;
+      const queenMesh = this.builder.buildPiece('q', color);
+      queenMesh.position.copy(this.gridToWorld(move.to.r, move.to.c));
+      queenMesh.userData.grid = { r: move.to.r, c: move.to.c };
+      this.scene.add(queenMesh);
+      this.pieceMeshes[`${move.to.r},${move.to.c}`] = queenMesh;
+      this.logChronicle(`Pawn ascended through ancient transfiguration into a Queen!`, 'system-message');
+    }
+
+    this.updateTurnUI();
+
+    if (result.isCheckmate) {
+      soundEngine.playVictoryChime();
+      const winner = this.engine.turn === 'w' ? 'Nox Legion' : 'Lumos Order';
+      this.showGameOverModal(`CHECKMATE!`, `${winner} reigns victorious in the Grand Duel.`);
+    } else if (result.inCheck) {
+      this.logChronicle(`The King is under siege! CHECK!`, 'spell-shatter');
+    }
+
+    this.isAnimatingCombat = false;
+    if (onComplete) onComplete();
+  }
+
+  // ==========================================
+  // 7. INPUT & TURN INTERACTION
+  // ==========================================
+  bindEvents() {
+    this.renderer.domElement.addEventListener('pointerdown', (e) => this.onPointerDown(e));
+
+    // UI Buttons
+    document.getElementById('btn-undo').addEventListener('click', () => this.handleUndo());
+    document.getElementById('btn-restart').addEventListener('click', () => this.handleReset());
+    document.getElementById('modal-btn-restart').addEventListener('click', () => {
+      document.getElementById('game-modal').classList.add('modal-hidden');
+      this.handleReset();
+    });
+
+    // Sound toggle
+    const soundBtn = document.getElementById('btn-sound');
+    soundBtn.addEventListener('click', () => {
+      soundEngine.muted = !soundEngine.muted;
+      soundBtn.textContent = soundEngine.muted ? 'Sound: OFF' : 'Sound: ON';
+      if (!soundEngine.muted) soundEngine.playSelect();
+    });
+
+    // Camera presets
+    document.getElementById('btn-cam-reset').addEventListener('click', () => {
+      gsap.to(this.camera.position, { x: 0, y: 8.5, z: 9.5, duration: 1.2, ease: "power2.inOut" });
+      this.controls.target.set(0, 0.3, 0);
+    });
+
+    document.getElementById('btn-cam-tactical').addEventListener('click', () => {
+      gsap.to(this.camera.position, { x: 0, y: 12.5, z: 0.1, duration: 1.2, ease: "power2.inOut" });
+      this.controls.target.set(0, 0, 0);
+    });
+
+    document.getElementById('btn-cam-duel').addEventListener('click', () => {
+      gsap.to(this.camera.position, { x: 3.5, y: 3.2, z: 5.5, duration: 1.2, ease: "power2.inOut" });
+      this.controls.target.set(0, 0.5, 0);
+    });
+  }
+
+  onPointerDown(e) {
+    if (this.isAnimatingCombat) return;
+
+    soundEngine.ensureContext();
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+    const intersects = this.raycaster.intersectObjects(this.scene.children, true);
+
+    if (intersects.length === 0) return;
+
+    // Find clicked chess piece or board square
+    let hitPiece = null;
+    let hitSquare = null;
+
+    for (let hit of intersects) {
+      let curr = hit.object;
+      while (curr && curr !== this.scene) {
+        if (curr.userData && curr.userData.grid) {
+          hitPiece = curr;
+          break;
+        }
+        if (curr.userData && curr.userData.r !== undefined) {
+          hitSquare = curr.userData;
+          break;
+        }
+        curr = curr.parent;
+      }
+      if (hitPiece || hitSquare) break;
+    }
+
+    const clickedRow = hitPiece ? hitPiece.userData.grid.r : (hitSquare ? hitSquare.r : null);
+    const clickedCol = hitPiece ? hitPiece.userData.grid.c : (hitSquare ? hitSquare.c : null);
+
+    if (clickedRow === null || clickedCol === null) {
+      this.deselect();
+      return;
+    }
+
+    // If already selected, check if clicked position is a legal move
+    if (this.selectedSquare) {
+      const matchMove = this.legalMovesForSelected.find(
+        m => m.to.r === clickedRow && m.to.c === clickedCol
+      );
+
+      if (matchMove) {
+        this.clearHighlights();
+        this.deselect();
+        this.executeMoveWithAnimation(matchMove, () => {
+          this.checkAIMove();
+        });
+        return;
+      }
+    }
+
+    // Otherwise, select piece if it matches current turn
+    const targetPieceCode = this.engine.board[clickedRow][clickedCol];
+    if (targetPieceCode && this.engine.getPieceColor(targetPieceCode) === this.engine.turn) {
+      this.selectedSquare = { r: clickedRow, c: clickedCol };
+      soundEngine.playSelect();
+      this.legalMovesForSelected = this.engine.getLegalMoves(clickedRow, clickedCol);
+      this.showLegalMoveHighlights(this.legalMovesForSelected);
+    } else {
+      this.deselect();
+    }
+  }
+
+  deselect() {
+    this.selectedSquare = null;
+    this.legalMovesForSelected = [];
+    this.clearHighlights();
+  }
+
+  checkAIMove() {
+    const diff = document.getElementById('ai-difficulty').value;
+    if (diff === 'pvp') return; // Local 2 Player
+    if (this.engine.turn !== 'b') return;
+
+    const depth = parseInt(diff, 10) || 2;
+
+    this.logChronicle("The Archmage weaves a counter-curse...", "system-message");
+
+    setTimeout(() => {
+      const aiMove = this.ai.getBestMove(depth);
+      if (aiMove) {
+        this.executeMoveWithAnimation(aiMove, () => {
+          // Player's turn again
+        });
+      }
+    }, 450);
+  }
+
+  handleUndo() {
+    if (this.isAnimatingCombat) return;
+    const undone = this.engine.undo();
+    if (undone) {
+      // If vs AI, undo twice so it is player's turn
+      const diff = document.getElementById('ai-difficulty').value;
+      if (diff !== 'pvp' && this.engine.turn === 'b') {
+        this.engine.undo();
+      }
+      this.syncBoardToMeshes();
+      this.updateTurnUI();
+      this.logChronicle("Time turns back! The incantation is undone.", "system-message");
+    }
+  }
+
+  handleReset() {
+    if (this.isAnimatingCombat) return;
+    this.engine.reset();
+    this.syncBoardToMeshes();
+    this.clearHighlights();
+    this.selectedSquare = null;
+    document.getElementById('white-graveyard').innerHTML = '';
+    document.getElementById('black-graveyard').innerHTML = '';
+    document.getElementById('duel-log').innerHTML = '<div class="log-entry system-message">The duel begins anew. Cast your move.</div>';
+    this.updateTurnUI();
+  }
+
+  // ==========================================
+  // 8. HUD & UI MANAGEMENT
+  // ==========================================
+  updateTurnUI() {
+    const turnText = document.getElementById('turn-text');
+    const turnGem = document.getElementById('turn-gem');
+    if (this.engine.turn === 'w') {
+      turnText.textContent = "LUMOS ORDER’S MOVE";
+      turnGem.style.background = "var(--lumos-blue)";
+      turnGem.style.boxShadow = "0 0 10px var(--lumos-blue)";
+    } else {
+      turnText.textContent = "NOX LEGION’S MOVE";
+      turnGem.style.background = "var(--nox-crimson)";
+      turnGem.style.boxShadow = "0 0 10px var(--nox-crimson)";
+    }
+  }
+
+  addGravePiece(piece) {
+    const isWhite = piece === piece.toUpperCase();
+    const container = document.getElementById(isWhite ? 'white-graveyard' : 'black-graveyard');
+    const slot = document.createElement('div');
+    slot.className = 'grave-piece';
+
+    // Unicode Chess Glyphs
+    const symbols = {
+      p: '♟', r: '♜', n: '♞', b: '♝', q: '♛', k: '♚'
+    };
+    slot.textContent = symbols[piece.toLowerCase()] || '♟';
+    container.appendChild(slot);
+  }
+
+  logChronicle(msg, type = 'system-message') {
+    const feed = document.getElementById('duel-log');
+    const item = document.createElement('div');
+    item.className = `log-entry ${type}`;
+    item.textContent = msg;
+    feed.appendChild(item);
+    feed.scrollTop = feed.scrollHeight;
+  }
+
+  showGameOverModal(title, desc) {
+    const modal = document.getElementById('game-modal');
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-desc').textContent = desc;
+    modal.classList.remove('modal-hidden');
+  }
+
+  // ==========================================
+  // 9. ANIMATION LOOP & PHYSICS UPDATE
+  // ==========================================
+  animate() {
+    requestAnimationFrame(() => this.animate());
+
+    const delta = 0.016; // Approx 60fps delta
+    const time = performance.now() * 0.001;
+
+    // 1. Update OrbitControls
+    this.controls.update();
+
+    // 2. Animate Floating Candles
+    for (let c of this.floatingCandles) {
+      c.group.position.y = c.baseY + Math.sin(time * c.speed + c.phase) * 0.15;
+    }
+
+    // 3. Animate Mystical Dust motes
+    if (this.dustParticles) {
+      const positions = this.dustParticles.geometry.attributes.position.array;
+      for (let i = 1; i < positions.length; i += 3) {
+        positions[i] += delta * 0.25;
+        if (positions[i] > 8.0) positions[i] = 0.2; // Loop back
+      }
+      this.dustParticles.geometry.attributes.position.needsUpdate = true;
+    }
+
+    // 4. Update Physics Debris Stone Fragments
+    for (let i = this.debrisParticles.length - 1; i >= 0; i--) {
+      const p = this.debrisParticles[i];
+      p.life -= delta;
+      p.velocity.y += p.gravity * delta;
+      p.mesh.position.addScaledVector(p.velocity, delta);
+      p.mesh.rotation.x += 0.1;
+      p.mesh.rotation.y += 0.12;
+
+      // Floor collision
+      if (p.mesh.position.y < 0.15) {
+        p.mesh.position.y = 0.15;
+        p.velocity.y *= -0.4;
+        p.velocity.x *= 0.7;
+        p.velocity.z *= 0.7;
+      }
+
+      if (p.life <= 0) {
+        this.scene.remove(p.mesh);
+        this.debrisParticles.splice(i, 1);
+      }
+    }
+
+    // 5. Idle breathing animation for Queen's floating core
+    for (let key in this.pieceMeshes) {
+      const core = this.pieceMeshes[key].getObjectByName("floatingCore");
+      if (core) {
+        core.rotation.y += 0.02;
+        core.position.y = 1.45 + Math.sin(time * 3) * 0.05;
+      }
+    }
+
+    this.renderer.render(this.scene, this.camera);
+  }
+}
+
+// Initialize on window load
+window.addEventListener('DOMContentLoaded', () => {
+  new WizardChessApp();
+});

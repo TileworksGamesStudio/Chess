@@ -1,91 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Wizard's Chess 3D — Chamber of the Sorcerer</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wizard's Chess — The Grand Duel</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=MedievalSharp&family=Metamorphous&display=swap" rel="stylesheet">
-  <!-- Three.js from trusted CDN -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Three.js, OrbitControls, and GSAP via high-speed CDNs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 </head>
 <body>
-  <!-- 3D Canvas Viewport -->
+  <!-- 3D Canvas Container -->
   <div id="webgl-container"></div>
 
-  <!-- Screen Shake / Kill-Cam Arcane Flash -->
-  <div id="fx-flash" class="flash-overlay"></div>
+  <!-- Vignette & Spell Flash Overlay -->
+  <div id="vignette-overlay"></div>
+  <div id="flash-overlay"></div>
 
-  <!-- Game HUD & 4th-Wall Overlay -->
-  <div id="ui-layer">
-    <!-- Top Wizard Status Bar -->
-    <header id="top-bar">
-      <div class="banner-title">
-        <span class="rune-symbol">⚡</span>
-        <div>
-          <h1>WIZARD'S CHESS 3D</h1>
-          <span class="subtext">Chamber of the Living Stone</span>
-        </div>
+  <!-- Top Banner / Game State HUD -->
+  <header id="ui-header">
+    <div class="heraldry-crest left-crest"></div>
+    <div class="header-center">
+      <h1 class="game-title">WIZARD’S CHESS</h1>
+      <div class="turn-indicator-badge">
+        <span class="pulse-gem" id="turn-gem"></span>
+        <span id="turn-text">LUMOS ORDER’S MOVE</span>
       </div>
+    </div>
+    <div class="heraldry-crest right-crest"></div>
+  </header>
 
-      <div class="turn-indicator" id="turn-indicator">
-        <span class="orb white" id="turn-orb"></span>
-        <span id="turn-text">White Order's Command</span>
-      </div>
-    </header>
+  <!-- Left Sidebar: Captured Piece Crypts & Engine Eval -->
+  <aside id="ui-left-panel" class="parchment-glass">
+    <div class="panel-header">GRAVEYARD OF FALLEN PIECES</div>
+    <div class="graveyard-section">
+      <div class="graveyard-title">Lumos Casualties</div>
+      <div id="white-graveyard" class="graveyard-slots"></div>
+    </div>
+    <div class="graveyard-divider"></div>
+    <div class="graveyard-section">
+      <div class="graveyard-title">Nox Casualties</div>
+      <div id="black-graveyard" class="graveyard-slots"></div>
+    </div>
+  </aside>
 
-    <!-- 4th-Wall Living Piece Dialogue Parchment -->
-    <section id="dialogue-banner" class="dialogue-parchment">
-      <div class="speaker-sigil" id="diag-sigil">♟️</div>
-      <div class="dialogue-body">
-        <div class="speaker-name" id="diag-name">Pawn of Gryffon</div>
-        <div class="speaker-speech" id="diag-text">
-          "Don't just stare through that phone screen! Tap me, point me at their knight, and watch me crush him to dust!"
-        </div>
-      </div>
-    </section>
+  <!-- Right Sidebar: Duel Chronicle & Move Log -->
+  <aside id="ui-right-panel" class="parchment-glass">
+    <div class="panel-header">THE DUEL CHRONICLE</div>
+    <div id="duel-log" class="chronicle-feed">
+      <div class="log-entry system-message">The ancient chess chamber stirs. Cast your move, wizard.</div>
+    </div>
+  </aside>
 
-    <!-- Tactical Mobile HUD Controls -->
-    <footer id="hud-controls">
-      <button class="arcane-btn" id="btn-camera" title="Cycle Camera Angle">
-        <span class="icon">🎥</span>
-        <span class="label" id="cam-label">Cinematic</span>
-      </button>
+  <!-- Bottom Control Bar -->
+  <footer id="ui-footer">
+    <div class="control-group">
+      <label for="ai-difficulty">Opponent:</label>
+      <select id="ai-difficulty" class="fantasy-select">
+        <option value="1">Apprentice AI</option>
+        <option value="2" selected>Auror Knight AI</option>
+        <option value="3">Archmage AI</option>
+        <option value="pvp">Pass & Play (2P)</option>
+      </select>
+    </div>
 
-      <button class="arcane-btn" id="btn-ai" title="Toggle AI Opponent">
-        <span class="icon">🧙‍♂️</span>
-        <span class="label" id="ai-label">AI: Dark Lord</span>
-      </button>
+    <div class="button-row">
+      <button id="btn-cam-tactical" class="fantasy-btn" title="Bird's Eye View">Tactical Cam</button>
+      <button id="btn-cam-duel" class="fantasy-btn" title="Dynamic Duel Angle">Duel Cam</button>
+      <button id="btn-cam-reset" class="fantasy-btn" title="Standard Free View">Free Cam</button>
+      <button id="btn-undo" class="fantasy-btn" title="Turn back time">Undo Spell</button>
+      <button id="btn-sound" class="fantasy-btn audio-btn" title="Toggle Magical Acoustics">Sound: ON</button>
+      <button id="btn-restart" class="fantasy-btn danger-btn" title="Reset the board">Reset Duel</button>
+    </div>
+  </footer>
 
-      <button class="arcane-btn" id="btn-taunt" title="Piece Wisdom & Taunts">
-        <span class="icon">🔮</span>
-        <span class="label">Consult</span>
-      </button>
-
-      <button class="arcane-btn btn-danger" id="btn-reset" title="Reform the Stone">
-        <span class="icon">↺</span>
-        <span class="label">Reset</span>
-      </button>
-
-      <button class="arcane-btn" id="btn-audio" title="Mute/Unmute Spells">
-        <span class="icon" id="audio-icon">🔊</span>
-        <span class="label">Magic</span>
-      </button>
-    </footer>
-  </div>
-
-  <!-- Game Over Screen -->
-  <div id="game-modal" class="modal-backdrop hidden">
-    <div class="modal-box">
-      <h2 id="modal-heading">CHECKMATE!</h2>
-      <div class="modal-seal">⚡</div>
-      <p id="modal-message">The dark army has been crushed into ancient rubble.</p>
-      <button class="arcane-btn btn-large" id="modal-restart-btn">Reform Army</button>
+  <!-- Modal / End Game Overlay -->
+  <div id="game-modal" class="modal-hidden">
+    <div class="modal-card">
+      <h2 id="modal-title">CHECKMATE!</h2>
+      <p id="modal-desc">The Lumos Order has shattered the Obsidian Legion.</p>
+      <button id="modal-btn-restart" class="fantasy-btn gold-glow">Re-engage the Duel</button>
     </div>
   </div>
 
-  <script src="scripts.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
